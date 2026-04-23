@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Mirror — L'IA qui révèle qui tu es vraiment et transforme ta vie en 15 jours. 7 jours gratuits.">
+<meta name="theme-color" content="#111111">
+<title>Mirror — commence ta transformation</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #111111;
+  --bg2:   #181818;
+  --bg3:   #1f1f1f;
+  --bg4:   #252525;
+  --gold:  #c9a96e;
+  --gold2: rgba(201,169,110,0.1);
+  --gold3: rgba(201,169,110,0.05);
+  --text:  #ededeb;
+  --text2: #b0afa8;
+  --text3: #787770;
+  --ok:    #3dba7e;
+  --err:   #e05555;
+  --bdr:   rgba(255,255,255,0.08);
+  --bdr2:  rgba(255,255,255,0.14);
+  --r:     10px;
+  --r2:    14px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-weight:400;font-size:16px;line-height:1.6;overflow-x:hidden;}
+a{text-decoration:none;color:inherit;}
+button{font-family:inherit;cursor:pointer;border:none;}
+button:active{opacity:.85;transform:scale(.98);}
+
+/* GRAIN */
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:999;opacity:.45;}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:15px 24px;display:flex;align-items:center;justify-content:space-between;background:rgba(17,17,17,.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr);transition:padding .3s;}
+nav.scrolled{padding:11px 24px;}
+.logo{font-size:19px;font-weight:700;letter-spacing:-.3px;}
+.logo span{color:var(--gold);}
+.nav-right{display:flex;align-items:center;gap:20px;}
+.nav-link{font-size:13px;color:var(--text3);transition:color .2s;}
+.nav-link:hover{color:var(--text);}
+.nav-cta{font-size:12px;font-weight:700;letter-spacing:.4px;padding:9px 20px;background:var(--gold);color:#000;border-radius:99px;transition:all .2s;}
+.nav-cta:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(201,169,110,.25);}
+
+/* FOMO BAR */
+.fomo-bar{background:rgba(201,169,110,.07);border-bottom:1px solid rgba(201,169,110,.12);padding:8px 16px;text-align:center;font-size:12px;color:var(--text2);letter-spacing:.2px;}
+.fomo-bar strong{color:var(--gold);}
+
+/* HERO */
+.hero{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:110px 20px 64px;position:relative;overflow:hidden;}
+.hero-glow{position:absolute;top:-80px;left:50%;transform:translateX(-50%);width:600px;height:500px;background:radial-gradient(circle,rgba(201,169,110,.06) 0%,transparent 70%);pointer-events:none;}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:56px 56px;mask-image:radial-gradient(ellipse 80% 60% at 50% 40%,black,transparent);pointer-events:none;}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--gold);margin-bottom:22px;opacity:0;animation:fadeUp .7s .1s forwards;}
+.eyebrow::before,.eyebrow::after{content:'';width:20px;height:1px;background:rgba(201,169,110,.45);}
+.hero h1{font-size:clamp(36px,7.5vw,74px);font-weight:700;line-height:1.06;letter-spacing:-1.5px;max-width:780px;opacity:0;animation:fadeUp .7s .22s forwards;}
+.hero h1 em{font-style:italic;font-weight:300;color:var(--gold);}
+.hero-sub{font-size:clamp(14px,1.8vw,17px);color:var(--text2);margin-top:18px;max-width:460px;line-height:1.7;font-weight:300;opacity:0;animation:fadeUp .7s .38s forwards;}
+.hero-pills{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:18px;opacity:0;animation:fadeUp .7s .48s forwards;}
+.pill{font-size:11px;padding:4px 11px;border-radius:99px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--text3);letter-spacing:.2px;}
+.hero-cta{margin-top:28px;display:flex;flex-direction:column;align-items:center;gap:10px;opacity:0;animation:fadeUp .7s .58s forwards;}
+.btn-main{display:inline-flex;align-items:center;gap:10px;background:var(--gold);color:#000;padding:15px 38px;font-size:14px;font-weight:700;letter-spacing:.4px;border-radius:99px;transition:all .25s;position:relative;overflow:hidden;}
+.btn-main::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,.18);transform:translateX(-100%) skewX(-15deg);transition:transform .4s;}
+.btn-main:hover::before{transform:translateX(100%) skewX(-15deg);}
+.btn-main:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(201,169,110,.28);}
+.hero-note{font-size:12px;color:var(--text3);letter-spacing:.2px;}
+.hero-note strong{color:var(--text2);}
+
+/* TICKER */
+.ticker-wrap{overflow:hidden;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);padding:11px 0;background:rgba(255,255,255,.01);}
+.ticker-track{display:inline-flex;gap:40px;animation:ticker 30s linear infinite;white-space:nowrap;}
+.tick{font-size:12px;color:var(--text3);display:flex;align-items:center;gap:7px;flex-shrink:0;}
+.tick-dot{width:4px;height:4px;border-radius:50%;background:var(--gold);flex-shrink:0;}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);}
+.stat{padding:28px 16px;text-align:center;border-right:1px solid var(--bdr);transition:background .25s;}
+.stat:last-child{border-right:none;}
+.stat:hover{background:rgba(201,169,110,.03);}
+.stat-n{font-size:34px;font-weight:700;color:var(--gold);line-height:1;letter-spacing:-1px;}
+.stat-l{font-size:11px;color:var(--text3);margin-top:5px;letter-spacing:.4px;}
+
+/* GENERIC SECTION */
+section{padding:72px 20px;}
+.inner{max-width:1080px;margin:0 auto;}
+.sec-tag{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.sec-tag::before{content:'';width:14px;height:1px;background:rgba(201,169,110,.5);}
+.sec-h2{font-size:clamp(26px,3.8vw,46px);font-weight:700;line-height:1.1;letter-spacing:-1px;}
+.sec-h2 em{font-style:italic;font-weight:300;color:var(--gold);}
+
+/* DOMAINS */
+.domains-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bdr);margin-top:44px;}
+.dom{background:var(--bg);padding:26px 22px;position:relative;overflow:hidden;transition:background .22s;}
+.dom::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:opacity .3s;}
+.dom:hover{background:var(--bg2);}
+.dom:hover::before{opacity:1;}
+.dom-icon{font-size:20px;color:var(--gold);margin-bottom:10px;display:block;}
+.dom-title{font-size:15px;font-weight:600;margin-bottom:6px;}
+.dom-desc{font-size:12px;color:var(--text2);line-height:1.65;}
+.dom-tags{margin-top:9px;display:flex;flex-wrap:wrap;gap:4px;}
+.dom-tag{font-size:10px;padding:2px 8px;border-radius:99px;background:var(--bg3);color:var(--text3);border:1px solid var(--bdr);}
+
+/* HOW */
+.how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bdr);margin-top:44px;}
+.how-step{background:var(--bg);padding:28px 22px;}
+.how-num{font-size:14px;font-weight:600;letter-spacing:1.5px;color:var(--text2);margin-bottom:10px;display:block;}
+.how-icon{font-size:18px;color:var(--gold);margin-bottom:10px;display:block;}
+.how-h3{font-size:16px;font-weight:600;margin-bottom:7px;line-height:1.25;}
+.how-p{font-size:13px;color:var(--text2);line-height:1.65;}
+
+/* ARCHÉTYPES — mystère */
+.arch-mystery{margin-top:44px;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r2);padding:36px 32px;text-align:center;position:relative;overflow:hidden;}
+.arch-mystery::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+.arch-blur-row{display:flex;gap:10px;justify-content:center;margin-bottom:20px;filter:blur(5px);opacity:.4;pointer-events:none;user-select:none;}
+.arch-blur-item{width:80px;height:80px;border-radius:var(--r2);background:var(--bg3);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--gold);}
+.arch-mystery-title{font-size:19px;font-weight:600;margin-bottom:8px;letter-spacing:-.3px;}
+.arch-mystery-sub{font-size:13px;color:var(--text2);line-height:1.65;max-width:440px;margin:0 auto 22px;}
+.arch-lock{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3);background:var(--bg3);border:1px solid var(--bdr);padding:7px 16px;border-radius:99px;}
+
+/* TESTIMONIALS */
+.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bdr);margin-top:44px;}
+.testi{background:var(--bg);padding:26px 22px;transition:background .22s;}
+.testi:hover{background:var(--bg2);}
+.testi-q{font-size:14px;font-weight:300;font-style:italic;line-height:1.7;color:var(--text);margin-bottom:18px;}
+.testi-q::before{content:'"';font-size:40px;color:rgba(201,169,110,.12);line-height:.35;display:block;margin-bottom:10px;font-style:normal;}
+.testi-author{display:flex;align-items:center;gap:11px;}
+.testi-av{width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--gold);flex-shrink:0;}
+.testi-name{font-size:13px;font-weight:600;}
+.testi-role{font-size:11px;color:var(--text3);margin-top:1px;}
+.testi-res{font-size:11px;color:var(--ok);margin-top:3px;font-weight:500;}
+
+/* FORM */
+.form-wrap{max-width:640px;margin:0 auto;}
+.form-box{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r2);overflow:hidden;margin-top:36px;position:relative;}
+.form-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+.prog-track{display:flex;gap:3px;padding:14px 18px 0;}
+.prog-seg{height:2px;flex:1;background:rgba(255,255,255,.06);border-radius:1px;transition:background .35s;}
+.prog-seg.done{background:var(--gold);}
+.form-step{display:none;padding:18px;}
+.form-step.active{display:block;}
+.q-lbl{font-size:10px;color:var(--gold);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;}
+.q-txt{font-size:19px;font-weight:600;line-height:1.3;margin-bottom:18px;letter-spacing:-.3px;}
+.opts{display:flex;flex-direction:column;gap:6px;}
+.opt{padding:12px 15px;border:1px solid var(--bdr);border-radius:var(--r);background:transparent;color:var(--text2);font-family:inherit;font-size:13px;text-align:left;cursor:pointer;transition:all .16s;display:flex;align-items:center;gap:9px;}
+.opt::before{content:'';width:5px;height:5px;border-radius:50%;border:1.5px solid var(--text3);flex-shrink:0;transition:all .16s;}
+.opt:hover{border-color:rgba(201,169,110,.4);color:var(--text);background:var(--gold3);}
+.opt:hover::before{border-color:var(--gold);}
+.opt.sel{border-color:var(--gold);color:var(--text);background:var(--gold2);}
+.opt.sel::before{background:var(--gold);border-color:var(--gold);}
+.form-nav{display:flex;justify-content:space-between;align-items:center;margin-top:18px;}
+.btn-next{padding:12px 30px;background:var(--gold);color:#000;border-radius:99px;font-family:inherit;font-size:13px;font-weight:700;letter-spacing:.3px;transition:all .18s;}
+.btn-next:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(201,169,110,.2);}
+.btn-back{background:none;color:var(--text3);font-family:inherit;font-size:13px;transition:color .18s;}
+.btn-back:hover{color:var(--text);}
+.form-input{width:100%;padding:12px 15px;background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--r);color:var(--text);font-family:inherit;font-size:14px;outline:none;transition:border-color .2s;margin-bottom:9px;}
+.form-input:focus{border-color:rgba(201,169,110,.5);}
+.form-input::placeholder{color:var(--text3);}
+
+/* PRICING */
+.pricing-card{max-width:520px;margin:36px auto 0;border:1px solid rgba(201,169,110,.28);border-radius:var(--r2);background:var(--bg2);overflow:hidden;position:relative;}
+.pricing-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+.pricing-badge{background:var(--gold);padding:7px 20px;text-align:center;font-size:10px;font-weight:700;color:#000;letter-spacing:1px;}
+.pricing-body{padding:28px;}
+.trial-hero{text-align:center;margin-bottom:22px;padding:20px;background:var(--gold3);border:1px solid rgba(201,169,110,.15);border-radius:var(--r);}
+.trial-free{font-size:36px;font-weight:700;color:var(--gold);letter-spacing:-1px;line-height:1;}
+.trial-sub{font-size:13px;color:var(--text2);margin-top:5px;}
+.trial-then{font-size:12px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr);}
+.trial-then strong{color:var(--text2);}
+.price-features{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:22px;}
+.price-features li{font-size:13px;color:var(--text);display:flex;gap:9px;align-items:flex-start;line-height:1.4;}
+.price-features li::before{content:'→';color:var(--gold);flex-shrink:0;}
+.launch-note{background:rgba(61,186,126,.06);border:1px solid rgba(61,186,126,.15);border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--text2);margin-bottom:18px;text-align:center;line-height:1.5;}
+.launch-note strong{color:var(--ok);}
+.guarantee{font-size:11px;color:var(--text3);text-align:center;margin-top:12px;letter-spacing:.2px;}
+
+/* FAQ */
+.faq-wrap{max-width:620px;margin:36px auto 0;}
+.faq-item{border-bottom:1px solid var(--bdr);cursor:pointer;}
+.faq-q{display:flex;justify-content:space-between;align-items:center;padding:16px 0;font-size:14px;color:var(--text2);transition:color .18s;gap:12px;}
+.faq-item:hover .faq-q{color:var(--text);}
+.faq-icon{color:var(--gold);font-size:17px;transition:transform .25s;flex-shrink:0;}
+.faq-item.open .faq-icon{transform:rotate(45deg);}
+.faq-item.open .faq-q{color:var(--text);}
+.faq-a{font-size:13px;color:var(--text2);line-height:1.7;padding-bottom:14px;display:none;}
+.faq-item.open .faq-a{display:block;}
+
+/* FOOTER */
+footer{border-top:1px solid var(--bdr);padding:28px 24px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px;}
+.footer-logo{font-size:16px;font-weight:700;}
+.footer-logo span{color:var(--gold);}
+.footer-links{display:flex;gap:18px;}
+.footer-links a{font-size:11px;color:var(--text3);transition:color .2s;}
+.footer-links a:hover{color:var(--text2);}
+.footer-copy{font-size:11px;color:var(--text3);}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:20px;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r2);padding:11px 15px;z-index:500;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);transform:translateX(-120%);transition:transform .32s ease;max-width:270px;box-shadow:0 8px 28px rgba(0,0,0,.45);}
+.toast.show{transform:translateX(0);}
+.toast-dot{width:5px;height:5px;border-radius:50%;background:var(--ok);flex-shrink:0;animation:pulse 2s infinite;}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .55s,transform .55s;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  nav{padding:12px 16px;}
+  .nav-link{display:none;}
+  section{padding:52px 16px;}
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .stat{border-right:none;border-bottom:1px solid var(--bdr);padding:20px 12px;}
+  .stat:nth-child(odd){border-right:1px solid var(--bdr);}
+  .stat:nth-child(3),.stat:nth-child(4){border-bottom:none;}
+  .domains-grid,.how-grid,.testi-grid{grid-template-columns:1fr;}
+  .arch-blur-row{gap:6px;}
+  .arch-blur-item{width:56px;height:56px;font-size:18px;}
+  .form-step{padding:14px;}
+  .pricing-body{padding:20px 16px;}
+  footer{flex-direction:column;text-align:center;}
+  .footer-links{justify-content:center;}
+}
+</style>
+</head>
+<body>
+
+<!-- FOMO BAR -->
+<div class="fomo-bar">
+  Accès anticipé — <strong>7 jours gratuits</strong>, puis 19€ une seule fois · <strong id="fc">247</strong> places disponibles
+</div>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="logo">Mirror<span>.</span></div>
+  <div class="nav-right">
+    <a href="#comment" class="nav-link">Comment ça marche</a>
+    <a href="#analyser" class="nav-cta">Essayer gratuitement</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-grid"></div>
+  <p class="eyebrow">Analyse IA · Résultat en 3 minutes</p>
+  <h1>
+    Tout ce que tu veux<br>
+    <em>transformer</em><br>
+    commence ici.
+  </h1>
+  <p class="hero-sub">Mirror analyse qui tu es vraiment, révèle ce qui te bloque profondément, et forge un plan de transformation sur mesure — dans tous les domaines de ta vie.</p>
+  <div class="hero-pills">
+    <span class="pill">Vie professionnelle</span>
+    <span class="pill">Confiance</span>
+    <span class="pill">Relations</span>
+    <span class="pill">Discipline</span>
+    <span class="pill">Sens & mission</span>
+    <span class="pill">Équilibre mental</span>
+  </div>
+  <div class="hero-cta">
+    <a href="#analyser" class="btn-main">Commencer gratuitement — 7 jours →</a>
+    <p class="hero-note">⚡ <strong>247 personnes</strong> ont déjà découvert leur profil · Annule avant J+7, rien à payer</p>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-track">
+    <span class="tick"><span class="tick-dot"></span>Marie, 28 ans — Archétype révélé · Reconversion réussie</span>
+    <span class="tick"><span class="tick-dot"></span>Thomas, 34 ans — Score 71 · Plan lancé · Revenus +40%</span>
+    <span class="tick"><span class="tick-dot"></span>Camille, 31 ans — Blocage identifié · Plan 15j démarré</span>
+    <span class="tick"><span class="tick-dot"></span>Lucas, 27 ans — Confiance reconstruite en 3 semaines</span>
+    <span class="tick"><span class="tick-dot"></span>Sophie, 35 ans — Pattern récurrent enfin compris</span>
+    <span class="tick"><span class="tick-dot"></span>Karim, 29 ans — Discipline passée de 4 à 7/10</span>
+    <span class="tick"><span class="tick-dot"></span>Julie, 32 ans — Programme 3 mois démarré</span>
+    <span class="tick"><span class="tick-dot"></span>Marie, 28 ans — Archétype révélé · Reconversion réussie</span>
+    <span class="tick"><span class="tick-dot"></span>Thomas, 34 ans — Score 71 · Plan lancé · Revenus +40%</span>
+    <span class="tick"><span class="tick-dot"></span>Camille, 31 ans — Blocage identifié · Plan 15j démarré</span>
+    <span class="tick"><span class="tick-dot"></span>Lucas, 27 ans — Confiance reconstruite en 3 semaines</span>
+    <span class="tick"><span class="tick-dot"></span>Sophie, 35 ans — Pattern récurrent enfin compris</span>
+    <span class="tick"><span class="tick-dot"></span>Karim, 29 ans — Discipline passée de 4 à 7/10</span>
+    <span class="tick"><span class="tick-dot"></span>Julie, 32 ans — Programme 3 mois démarré</span>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats reveal">
+  <div class="stat"><div class="stat-n">247</div><div class="stat-l">Analyses réalisées</div></div>
+  <div class="stat"><div class="stat-n">94%</div><div class="stat-l">Taux de reconnaissance</div></div>
+  <div class="stat"><div class="stat-n">6</div><div class="stat-l">Domaines de vie</div></div>
+  <div class="stat"><div class="stat-n">15j</div><div class="stat-l">Plan d'action</div></div>
+</div>
+
+<!-- DOMAINES -->
+<section style="border-top:1px solid var(--bdr);">
+  <div class="inner">
+    <div class="reveal">
+      <p class="sec-tag">Ce que Mirror transforme</p>
+      <h2 class="sec-h2">Peu importe où tu bloques<br><em>Mirror s'adapte à toi.</em></h2>
+    </div>
+    <div class="domains-grid">
+      <div class="dom reveal">
+        <span class="dom-icon">◈</span>
+        <div class="dom-title">Vie professionnelle</div>
+        <p class="dom-desc">Stagnation, manque de direction, revenus bloqués, reconversion. Mirror identifie ce qui freine ta trajectoire et construit le plan concret.</p>
+        <div class="dom-tags"><span class="dom-tag">Promotion</span><span class="dom-tag">Reconversion</span><span class="dom-tag">Entrepreneuriat</span></div>
+      </div>
+      <div class="dom reveal">
+        <span class="dom-icon">◎</span>
+        <div class="dom-title">Confiance & estime</div>
+        <p class="dom-desc">Syndrome de l'imposteur, peur du jugement, auto-sabotage. Mirror révèle l'origine de ces patterns et comment les briser durablement.</p>
+        <div class="dom-tags"><span class="dom-tag">Légitimité</span><span class="dom-tag">Affirmation</span><span class="dom-tag">Prise de parole</span></div>
+      </div>
+      <div class="dom reveal">
+        <span class="dom-icon">◇</span>
+        <div class="dom-title">Relations & liens</div>
+        <p class="dom-desc">Schémas répétitifs, conflits récurrents, isolement. Mirror analyse tes patterns relationnels et t'aide à construire des liens authentiques.</p>
+        <div class="dom-tags"><span class="dom-tag">Couple</span><span class="dom-tag">Famille</span><span class="dom-tag">Social</span></div>
+      </div>
+      <div class="dom reveal">
+        <span class="dom-icon">▷</span>
+        <div class="dom-title">Discipline & action</div>
+        <p class="dom-desc">Procrastination, dispersion, manque de régularité. Mirror construit le système d'habitudes adapté à ton archétype exact.</p>
+        <div class="dom-tags"><span class="dom-tag">Productivité</span><span class="dom-tag">Habitudes</span><span class="dom-tag">Énergie</span></div>
+      </div>
+      <div class="dom reveal">
+        <span class="dom-icon">◉</span>
+        <div class="dom-title">Sens & mission</div>
+        <p class="dom-desc">Vide existentiel, manque de direction, sentiment d'être à côté de sa vie. Mirror t'aide à trouver ton cap et à l'assumer pleinement.</p>
+        <div class="dom-tags"><span class="dom-tag">Mission</span><span class="dom-tag">Valeurs</span><span class="dom-tag">Vision</span></div>
+      </div>
+      <div class="dom reveal">
+        <span class="dom-icon">△</span>
+        <div class="dom-title">Équilibre & bien-être</div>
+        <p class="dom-desc">Épuisement, anxiété de performance, déconnexion. Mirror identifie les causes profondes et propose un chemin de réalignement concret.</p>
+        <div class="dom-tags"><span class="dom-tag">Stress</span><span class="dom-tag">Burnout</span><span class="dom-tag">Équilibre</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="comment" style="background:var(--bg2);border-top:1px solid var(--bdr);">
+  <div class="inner">
+    <div class="reveal">
+      <p class="sec-tag">Comment ça marche</p>
+      <h2 class="sec-h2">3 étapes.<br><em>Une transformation.</em></h2>
+    </div>
+    <div class="how-grid">
+      <div class="how-step reveal">
+        <span class="how-num">01</span><span class="how-icon">◈</span>
+        <h3 class="how-h3">Dis-nous ce que tu veux transformer</h3>
+        <p class="how-p">8 questions calibrées pour révéler ton profil réel, tes blocages profonds et ton domaine prioritaire. Les questions s'adaptent à ton choix. Moins de 3 minutes.</p>
+      </div>
+      <div class="how-step reveal">
+        <span class="how-num">02</span><span class="how-icon">◎</span>
+        <h3 class="how-h3">L'IA analyse en profondeur</h3>
+        <p class="how-p">5 dimensions psychologiques. Ton archétype dominant révélé. Tes blocages DUR identifiés. Sans complaisance. Sans généralité. 100% personnalisé.</p>
+      </div>
+      <div class="how-step reveal">
+        <span class="how-num">03</span><span class="how-icon">◇</span>
+        <h3 class="how-h3">Reçois ton plan personnalisé</h3>
+        <p class="how-p">Rapport complet · Score d'éveil · Archétype · Simulation 12 mois · Plan 15 jours adapté à ton domaine · Message final percutant. Immédiatement.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHÉTYPES MYSTÈRE -->
+<section style="border-top:1px solid var(--bdr);">
+  <div class="inner">
+    <div class="reveal" style="text-align:center;">
+      <p class="sec-tag" style="justify-content:center;">Ton archétype</p>
+      <h2 class="sec-h2" style="text-align:center;">6 profils.<br><em>Lequel es-tu vraiment ?</em></h2>
+    </div>
+    <div class="arch-mystery reveal">
+      <div class="arch-blur-row">
+        <div class="arch-blur-item">◈</div>
+        <div class="arch-blur-item">◎</div>
+        <div class="arch-blur-item">◇</div>
+        <div class="arch-blur-item">▷</div>
+        <div class="arch-blur-item">◉</div>
+        <div class="arch-blur-item">△</div>
+      </div>
+      <div class="arch-mystery-title">Ton archétype est révélé après l'analyse</div>
+      <p class="arch-mystery-sub">Mirror identifie parmi 6 profils psychologiques lequel te correspond vraiment — avec tes forces cachées, tes pièges inconscients et ton potentiel exact. Le résultat te surprendra.</p>
+      <div class="arch-lock">🔒 Révélé uniquement après ton analyse · Résultat en 3 minutes</div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section style="background:var(--bg2);border-top:1px solid var(--bdr);">
+  <div class="inner">
+    <div class="reveal" style="text-align:center;">
+      <p class="sec-tag" style="justify-content:center;">Transformations réelles</p>
+      <h2 class="sec-h2" style="text-align:center;">Ils ont osé <em>regarder.</em></h2>
+    </div>
+    <div class="testi-grid">
+      <div class="testi reveal">
+        <p class="testi-q">J'ai compris en 3 minutes ce que 3 ans de coaching n'avaient pas révélé. Mon archétype m'a frappé en plein cœur. Je me suis reconnu dans chaque mot.</p>
+        <div class="testi-author">
+          <div class="testi-av">M</div>
+          <div><div class="testi-name">Marc D., 32 ans</div><div class="testi-role">Entrepreneur · Paris</div><div class="testi-res">Revenus +40% en 3 mois</div></div>
+        </div>
+      </div>
+      <div class="testi reveal">
+        <p class="testi-q">La simulation 12 mois m'a secouée. Voir où je serai si je ne change rien… c'est le déclic qu'il me fallait depuis 2 ans. J'ai commencé le plan le jour même.</p>
+        <div class="testi-author">
+          <div class="testi-av">S</div>
+          <div><div class="testi-name">Sarah L., 28 ans</div><div class="testi-role">Designer · Lyon</div><div class="testi-res">Reconversion réussie en 6 semaines</div></div>
+        </div>
+      </div>
+      <div class="testi reveal">
+        <p class="testi-q">Le plan 15 jours est concret, pas du blabla. J'ai commencé le jour même. Ma discipline est passée de 4 à 7/10. J'ai enfin compris pourquoi je procrastinais.</p>
+        <div class="testi-author">
+          <div class="testi-av">K</div>
+          <div><div class="testi-name">Karim B., 35 ans</div><div class="testi-role">Développeur · Bordeaux</div><div class="testi-res">Discipline +3 points en 2 semaines</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FORM -->
+<section id="analyser" style="border-top:1px solid var(--bdr);">
+  <div class="inner">
+    <div class="form-wrap">
+      <div class="reveal" style="text-align:center;">
+        <p class="sec-tag" style="justify-content:center;">Commence maintenant</p>
+        <h2 class="sec-h2" style="text-align:center;">Ton analyse <em>t'attend.</em></h2>
+        <p style="font-size:13px;color:var(--text2);margin-top:8px;">8 questions · 3 minutes · 7 jours gratuits</p>
+      </div>
+
+      <div class="form-box reveal">
+        <div class="prog-track" id="progTrack"></div>
+
+        <!-- Q0 -->
+        <div class="form-step active" data-step="0">
+          <p class="q-lbl">Pour commencer</p>
+          <p class="q-txt">Qu'est-ce que tu veux transformer en priorité ?</p>
+          <div class="opts">
+            <button class="opt" onclick="selOpt(this,'pro')">Ma vie professionnelle & carrière</button>
+            <button class="opt" onclick="selOpt(this,'conf')">Ma confiance & estime de moi</button>
+            <button class="opt" onclick="selOpt(this,'rel')">Mes relations & liens sociaux</button>
+            <button class="opt" onclick="selOpt(this,'disc')">Ma discipline & productivité</button>
+            <button class="opt" onclick="selOpt(this,'sens')">Mon sens & ma mission de vie</button>
+            <button class="opt" onclick="selOpt(this,'bien')">Mon équilibre mental & bien-être</button>
+          </div>
+          <div class="form-nav"><span></span><button class="btn-next" onclick="nextStep()">Continuer →</button></div>
+        </div>
+
+        <!-- Q1 -->
+        <div class="form-step" data-step="1">
+          <p class="q-lbl">Question 1 / 7</p>
+          <p class="q-txt" id="q1-txt">Quelle est ta situation actuelle ?</p>
+          <div class="opts" id="q1-opts">
+            <button class="opt" onclick="selOpt(this)">Salarié(e) — je veux évoluer ou changer</button>
+            <button class="opt" onclick="selOpt(this)">Entrepreneur(e) — je veux scaler</button>
+            <button class="opt" onclick="selOpt(this)">En transition — je cherche ma voie</button>
+            <button class="opt" onclick="selOpt(this)">Étudiant(e) — je construis mon futur</button>
+            <button class="opt" onclick="selOpt(this)">En pause — je me reconstruis</button>
+          </div>
+          <div class="form-nav"><button class="btn-back" onclick="prevStep()">← Retour</button><button class="btn-next" onclick="nextStep()">Continuer →</button></div>
+        </div>
+
+        <!-- Q2 -->
+        <div class="form-step" data-step="2">
+          <p class="q-lbl">Question 2 / 7</p>
+          <p class="q-txt" id="q2-txt">Ton problème le plus douloureux en ce moment ?</p>
+          <div class="opts" id="q2-opts">
+            <button class="opt" onclick="selOpt(this)">Je procrastine et ne finis rien</button>
+            <button class="opt" onclick="selOpt(this)">Je manque de confiance et me sabote</button>
+            <button class="opt" onclick="selOpt(this)">Je suis perdu(e) sans direction claire</button>
+            <button class="opt" onclick="selOpt(this)">Je répète les mêmes erreurs en boucle</button>
+            <button class="opt" onclick="selOpt(this)">Je stagne depuis trop longtemps</button>
+          </div>
+          <div class="form-nav"><button class="btn-back" onclick="prevStep()">← Retour</button><button class="btn-next" onclick="nextStep()">Continuer →</button></div>
+        </div>
+
+        <!-- Q3 -->
+        <div class="form-step" data-step="3">
+          <p class="q-lbl">Question 3 / 7</p>
+          <p class="q-txt" id="q3-txt">Dans 12 mois, si rien ne change — comment tu te sens ?</p>
+          <div class="opts" id="q3-opts">
+            <button class="opt" onclick="selOpt(this)">Stagnant(e) et frustré(e) au même endroit</button>
+            <button class="opt" onclick="selOpt(this)">Épuisé(e) d'avoir essayé sans résultats</button>
+            <button class="opt" onclick="selOpt(this)">Perdu(e), sans direction ni sens</button>
+            <button class="opt" onclick="selOpt(this)">En régression — les choses empirent</button>
+          </div>
+          <div class="form-nav"><button class="btn-back" onclick="prevStep()">← Retour</button><button class="btn-next" onclick="nextStep()">Continuer →</button></div>
+        </div>
+
+        <!-- Q4 -->
+        <div class="form-step" data-step="4">
+          <p class="q-lbl">Question 4 / 7</p>
+          <p class="q-txt" id="q4-txt">Comment les gens autour de toi te décrivent ?</p>
+          <div class="opts" id="q4-opts">
+            <button class="opt" onclick="selOpt(this)">Ambitieux(se) mais dispersé(e)</button>
+            <button class="opt" onclick="selOpt(this)">Intelligent(e) mais trop dans ma tête</button>
+            <button class="opt" onclick="selOpt(this)">Créatif(ve) mais pas assez régulier(ère)</button>
+            <button class="opt" onclick="selOpt(this)">Sérieux(se) mais trop rigide</button>
+            <button class="opt" onclick="selOpt(this)">Sensible mais qui se ferme</button>
+          </div>
+          <div class="form-nav"><button class="btn-back" onclick="prevStep()">← Retour</button><button class="btn-next" onclick="nextStep()">Continuer →</button></div>
+        </div>
+
+        <!-- Q5 -->
+        <div class="form-step" data-step="5">
+          <p class="q-lbl">Question 5 / 7</p>
+          <p class="q-txt" id="q5-txt">Ta plus grande force — celle que tu sous-utilises ?</p>
+          <div class="opts" id="q5-opts">
+            <button class="opt" onclick="selOpt(this)">Ma capacité à analyser et stratégiser</button>
+            <button class="opt" onclick="selOpt(this)">Mon énergie et ma capacité à influencer</button>
+            <button class="opt" onclick="selOpt(this)">Ma créativité et ma vision unique</button>
+            <button class="opt" onclick="selOpt(this)">Ma résilience et ma constance</button>
+            <button class="opt" onclick="selOpt(this)">Mon empathie et ma profondeur</button>
+          </div>
+          <div class="form-nav"><button class="btn-back" onclick="prevStep()">← Retour</button><button class="btn-next" onclick="nextStep()">Continuer →</button></div>
+        </div>
+
+        <!-- Q6 -->
+        <div class="form-step" data-step="6">
+          <p class="q-lbl">Question 6 / 7</p>
+          <p class="q-txt" id="q6-txt">Qu'est-ce qui t'empêche vraiment de changer ?</p>
+          <div class="opts" id="q6-opts">
+            <button class="opt" onclick="selOpt(this)">La peur de l'échec ou du jugement</button>
+            <button class="opt" onclick="selOpt(this)">Je ne sais pas par où commencer</button>
+            <button class="opt" onclick="selOpt(this)">J'ai essayé mais rien ne tient</button>
+            <button class="opt" onclick="selOpt(this)">Le manque de temps et d'énergie</button>
+            <button class="opt" onclick="selOpt(this)">Je ne crois pas vraiment que je peux changer</button>
+          </div>
+          <div class="form-nav"><button class="btn-back" onclick="prevStep()">← Retour</button><button class="btn-next" onclick="nextStep()">Continuer →</button></div>
+        </div>
+
+        <!-- Q7 -->
+        <div class="form-step" data-step="7">
+          <p class="q-lbl">Question 7 / 7</p>
+          <p class="q-txt" id="q7-txt">Ton objectif principal dans les 6 prochains mois ?</p>
+          <div class="opts" id="q7-opts">
+            <button class="opt" onclick="selOpt(this)">Augmenter mes revenus ou changer de carrière</button>
+            <button class="opt" onclick="selOpt(this)">Retrouver confiance et m'affirmer</button>
+            <button class="opt" onclick="selOpt(this)">Construire des relations plus profondes</button>
+            <button class="opt" onclick="selOpt(this)">Retrouver énergie, clarté et équilibre</button>
+            <button class="opt" onclick="selOpt(this)">Trouver ma mission et la vivre</button>
+          </div>
+          <div class="form-nav"><button class="btn-back" onclick="prevStep()">← Retour</button><button class="btn-next" onclick="nextStep()">Continuer →</button></div>
+        </div>
+
+        <!-- FINAL -->
+        <div class="form-step" data-step="8">
+          <p class="q-lbl">Dernière étape</p>
+          <p class="q-txt">Prêt(e) à recevoir la vérité sans filtre ?</p>
+          <input type="text" class="form-input" id="uname" placeholder="Ton prénom" autocomplete="given-name"/>
+          <input type="email" class="form-input" id="uemail" placeholder="Ton email — pour recevoir le rapport" autocomplete="email"/>
+          <div class="form-nav">
+            <button class="btn-back" onclick="prevStep()">← Retour</button>
+            <button class="btn-next" onclick="submitForm()" style="padding:13px 32px;font-size:14px;">
+              Démarrer — 7j gratuits →
+            </button>
+          </div>
+          <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:12px;line-height:1.6;">
+            CB requise · Aucun prélèvement pendant 7 jours · Annule quand tu veux · Stripe sécurisé
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section style="background:var(--bg2);border-top:1px solid var(--bdr);">
+  <div class="inner">
+    <div class="reveal" style="text-align:center;">
+      <p class="sec-tag" style="justify-content:center;">Tarif</p>
+      <h2 class="sec-h2" style="text-align:center;">Simple.<br><em>Sans surprise.</em></h2>
+    </div>
+    <div class="pricing-card reveal">
+      <div class="pricing-badge">ACCÈS ANTICIPÉ · <span id="pc">247</span> PLACES</div>
+      <div class="pricing-body">
+        <div class="trial-hero">
+          <div class="trial-free">7 jours gratuits</div>
+          <div class="trial-sub">Accès immédiat à ton rapport complet + app Mirror</div>
+          <div class="trial-then">Puis <strong>19€ une seule fois</strong> — aucun abonnement, aucun prélèvement récurrent</div>
+        </div>
+        <div class="launch-note">
+          🚀 <strong>Prix de lancement</strong> — 19€ pendant la phase d'accès anticipé · Augmente à 29€ au lancement officiel
+        </div>
+        <ul class="price-features">
+          <li>Rapport psychologique complet et 100% personnalisé</li>
+          <li>Score d'éveil (0-100) avec explication détaillée</li>
+          <li>Ton archétype dominant révélé avec tes forces cachées</li>
+          <li>Simulation de trajectoire sur 12 mois</li>
+          <li>Plan d'action 15 jours adapté à ton domaine</li>
+          <li>Message final percutant et personnel</li>
+          <li>Accès complet à l'app Mirror pendant 7 jours</li>
+        </ul>
+        <a href="#analyser" class="btn-main" style="display:flex;justify-content:center;width:100%;border-radius:99px;">
+          Commencer gratuitement →
+        </a>
+        <p class="guarantee">Annule avant J+7 — rien à payer · Satisfait ou remboursé sous 7 jours si prélèvement effectué</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section style="border-top:1px solid var(--bdr);">
+  <div class="inner">
+    <div class="reveal" style="text-align:center;margin-bottom:4px;">
+      <p class="sec-tag" style="justify-content:center;">Questions fréquentes</p>
+      <h2 class="sec-h2" style="text-align:center;">Questions <em>fréquentes.</em></h2>
+    </div>
+    <div class="faq-wrap">
+      <div class="faq-item reveal" onclick="toggleFaq(this)">
+        <div class="faq-q"><span>Est-ce vraiment gratuit pendant 7 jours ?</span><span class="faq-icon">+</span></div>
+        <div class="faq-a">Oui, totalement. Ta carte bancaire est requise pour l'inscription mais aucun prélèvement n'a lieu pendant 7 jours. Si tu annules avant J+7, tu ne paies rien. Si tu gardes Mirror, 19€ sont prélevés une seule fois — pas d'abonnement récurrent.</div>
+      </div>
+      <div class="faq-item reveal" onclick="toggleFaq(this)">
+        <div class="faq-q"><span>En quoi Mirror est différent d'un test de personnalité ?</span><span class="faq-icon">+</span></div>
+        <div class="faq-a">Les tests classiques te disent qui tu es. Mirror te dit pourquoi tu bloques et comment changer maintenant. Le rapport est 100% ancré dans tes réponses spécifiques — pas un profil générique. Et il inclut un plan d'action concret adapté à ton domaine de transformation prioritaire.</div>
+      </div>
+      <div class="faq-item reveal" onclick="toggleFaq(this)">
+        <div class="faq-q"><span>Les questions s'adaptent vraiment selon mon choix ?</span><span class="faq-icon">+</span></div>
+        <div class="faq-a">Oui. La première question détermine ton domaine prioritaire — vie pro, confiance, relations, discipline, sens ou bien-être. Les questions suivantes sont ensuite calibrées sur ce domaine pour que le rapport soit le plus précis et le plus personnel possible.</div>
+      </div>
+      <div class="faq-item reveal" onclick="toggleFaq(this)">
+        <div class="faq-q"><span>Quand est-ce que je reçois mon rapport ?</span><span class="faq-icon">+</span></div>
+        <div class="faq-a">Immédiatement après l'inscription. Le rapport est généré en moins de 60 secondes et accessible directement sur la page. Tu le reçois aussi par email pour le retrouver quand tu veux.</div>
+      </div>
+      <div class="faq-item reveal" onclick="toggleFaq(this)">
+        <div class="faq-q"><span>Comment annuler si ce n'est pas pour moi ?</span><span class="faq-icon">+</span></div>
+        <div class="faq-a">Depuis ton espace Mirror en 1 clic, ou par email à support@eter.ai. Si tu annules avant J+7, rien n'est prélevé. Si tu as déjà été prélevé(e), remboursement intégral sous 48h sans question.</div>
+      </div>
+      <div class="faq-item reveal" onclick="toggleFaq(this)">
+        <div class="faq-q"><span>Mes données sont-elles confidentielles ?</span><span class="faq-icon">+</span></div>
+        <div class="faq-a">Totalement. Tes réponses sont utilisées uniquement pour générer ton rapport. Jamais partagées, jamais revendues. Hébergement en Europe, conforme RGPD.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Mirror<span>.</span></div>
+  <div class="footer-links">
+    <a href="#">Mentions légales</a>
+    <a href="#">CGV</a>
+    <a href="#">Confidentialité</a>
+    <a href="mailto:support@eter.ai">Contact</a>
+  </div>
+  <p class="footer-copy">© 2026 eter.ai · Mirror est un produit eter.ai · Paiement sécurisé Stripe · RGPD</p>
+</footer>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-dot"></span>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+// NAV
+window.addEventListener('scroll',()=>document.getElementById('nav').classList.toggle('scrolled',scrollY>50));
+
+// FOMO
+let fv=247;
+const updateFomo=n=>{document.getElementById('fc').textContent=n;document.getElementById('pc').textContent=n;};
+setInterval(()=>{if(Math.random()>.72&&fv>208){fv--;updateFomo(fv);}},44000);
+
+// TOAST
+const TOASTS=['Marie de Paris — archétype révélé ✓','Thomas — Score 71 · Plan lancé ✓','Camille vient de terminer son analyse ✓','Lucas — confiance reconstruite en 3 semaines ✓','Sophie de Lyon — pattern compris ✓','Karim — discipline passée de 4 à 7/10 ✓'];
+let ti=0;
+function showToast(){
+  const t=document.getElementById('toast');
+  document.getElementById('toastMsg').textContent=TOASTS[ti++%TOASTS.length];
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),4000);
+}
+setTimeout(()=>{showToast();setInterval(showToast,22000);},8000);
+
+// FORM
+const TOTAL=9;
+let step=0,domain='',answers={};
+
+// Questions adaptées par domaine
+const Q2_MAP={
+  pro:  ['Je stagne et n\'avance plus dans ma carrière','Je ne gagne pas assez par rapport à ma valeur','Je veux changer de voie mais je n\'ose pas','Je procrastine sur des projets importants','Je manque de clarté sur ma direction professionnelle'],
+  conf: ['Je doute constamment de ma légitimité','Je m\'écrase face aux autres pour éviter les conflits','Je cherche toujours l\'approbation extérieure','Je minimise mes réussites et exagère mes échecs','La peur du jugement me paralyse'],
+  rel:  ['Je répète les mêmes schémas relationnels toxiques','J\'ai du mal à m\'ouvrir et à faire confiance','Je donne trop sans recevoir en retour','Mes relations manquent de profondeur','J\'ai peur de l\'abandon ou du rejet'],
+  disc: ['Je commence tout mais ne finis rien','Je procrastine même sur ce qui est important','Je manque de régularité dans mes efforts','Je me disperse et perds mon énergie','Je sais quoi faire mais je n\'agis pas'],
+  sens: ['Je ne sais pas ce que je veux vraiment','J\'ai l\'impression de passer à côté de ma vie','Je n\'ai pas de mission qui me porte','Je fais des choses qui ne m\'alignent pas','Je ressens un vide malgré les apparences'],
+  bien: ['Je suis épuisé(e) en permanence','Mon anxiété m\'empêche d\'avancer','Je n\'arrive pas à déconnecter du travail','Je néglige ma santé par manque de temps','Je me sens déconnecté(e) de moi-même']
+};
+const Q4_MAP={
+  pro:  ['Ambitieux(se) mais qui n\'ose pas passer à l\'acte','Compétent(e) mais sous-estimé(e)','Créatif(ve) mais sans structure','Fiable mais trop prudent(e)','Enthousiaste mais dispersé(e)'],
+  conf: ['Fort(e) en apparence mais fragile intérieurement','Perfectionniste qui se sabote','Agréable mais incapable de dire non','Capable mais qui doute de tout','Discret(e) par peur d\'être jugé(e)'],
+  rel:  ['Généreux(se) mais qui s\'oublie','Attentionné(e) mais qui s\'efface','Intense mais qui fait peur','Indépendant(e) mais qui s\'isole','Drôle et sociable mais superficiel(le)'],
+  disc: ['Ambitieux(se) mais dispersé(e)','Intelligent(e) mais trop dans ma tête','Créatif(ve) mais pas assez régulier(ère)','Motivé(e) par éclats mais pas dans la durée','Organisé(e) en théorie mais pas en pratique'],
+  sens: ['Profond(e) mais incompris(e)','Idéaliste mais bloqué(e) par le réel','Curieux(se) mais sans cap défini','Sensible mais qui se perd dans ses questionnements','Rêveur(se) mais sans ancrage'],
+  bien: ['Positif(ve) en surface mais épuisé(e) dedans','Efficace au travail mais à bout','Empathique jusqu\'à l\'épuisement','Souriant(e) mais intérieurement vide','Actif(ve) mais jamais vraiment présent(e)']
+};
+
+function buildProg(){
+  const t=document.getElementById('progTrack');t.innerHTML='';
+  for(let i=0;i<TOTAL;i++){const s=document.createElement('div');s.className='prog-seg'+(i<step?' done':'');s.id='ps'+i;t.appendChild(s);}
+}
+function updateProg(){for(let i=0;i<TOTAL;i++){const s=document.getElementById('ps'+i);if(s)s.className='prog-seg'+(i<step?' done':'');}}
+
+function selOpt(el,dom){
+  el.closest('.opts').querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  answers['q'+step]=el.textContent.trim();
+  if(dom){
+    domain=dom;
+    // Adapter Q2 et Q4 selon le domaine
+    const q2opts=document.getElementById('q2-opts');
+    if(q2opts&&Q2_MAP[dom]){
+      q2opts.innerHTML=Q2_MAP[dom].map(t=>`<button class="opt" onclick="selOpt(this)">${t}</button>`).join('');
+    }
+    const q4opts=document.getElementById('q4-opts');
+    if(q4opts&&Q4_MAP[dom]){
+      q4opts.innerHTML=Q4_MAP[dom].map(t=>`<button class="opt" onclick="selOpt(this)">${t}</button>`).join('');
+    }
+  }
+}
+
+function nextStep(){
+  if(step<TOTAL-1){
+    document.querySelector('[data-step="'+step+'"]').classList.remove('active');
+    step++;
+    document.querySelector('[data-step="'+step+'"]').classList.add('active');
+    updateProg();
+    const form=document.getElementById('analyser');
+    if(form) window.scrollTo({top:form.offsetTop-80,behavior:'smooth'});
+  }
+}
+function prevStep(){
+  if(step>0){
+    document.querySelector('[data-step="'+step+'"]').classList.remove('active');
+    step--;
+    document.querySelector('[data-step="'+step+'"]').classList.add('active');
+    updateProg();
+  }
+}
+function submitForm(){
+  const n=document.getElementById('uname').value.trim();
+  const e=document.getElementById('uemail').value.trim();
+  if(!n||!e){alert('Merci de renseigner ton prénom et ton email.');return;}
+  // Sauvegarder le nom et email pour l'app
+  sessionStorage.setItem('mirror_name', n);
+  sessionStorage.setItem('mirror_email', e);
+  // Rediriger vers l'app
+  window.location.href = '/app';
+}
+
+// FAQ
+function toggleFaq(el){el.classList.toggle('open');}
+
+// Scroll reveal
+const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:.07});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+buildProg();
+</script>
+</body>
+</html>
