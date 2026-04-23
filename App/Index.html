@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#111111">
+<title>Mirror — Analyse IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+/* ═══ TOKENS ══════════════════════════════════════════════ */
+:root {
+  --bg:    #111111;
+  --bg2:   #181818;
+  --bg3:   #1f1f1f;
+  --gold:  #c9a96e;
+  --gold2: rgba(201,169,110,.12);
+  --gold3: rgba(201,169,110,.06);
+  --text:  #ededeb;
+  --text2: #b0afa8;
+  --text3: #787770;
+  --bdr:   rgba(255,255,255,.08);
+  --bdr2:  rgba(255,255,255,.14);
+  --ok:    #3dba7e;
+  --err:   #e05555;
+  --r:     10px;
+  --r2:    14px;
+  --r3:    20px;
+}
+/* ═══ RESET ══════════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{height:100%}
+body{
+  font-family:"Plus Jakarta Sans",sans-serif;
+  color:var(--text);
+  font-size:15px;
+  background:var(--bg);
+  min-height:100%;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+button:active{opacity:.85;transform:scale(.98)}
+input,textarea{font-family:inherit}
+::-webkit-scrollbar{width:2px}
+::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+
+/* ═══ LAYOUT — VRAIMENT RESPONSIVE ════════════════════════ */
+html, body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* ── Mobile portrait & paysage : plein écran natif ───────── */
+#root {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* ── Tablette (≥600px) : on garde plein écran mais on ──────
+   élargit les marges internes                               */
+@media (min-width: 600px) and (max-width: 1023px) {
+  #root { width: 100vw; height: 100dvh; }
+  /* Plus d'espace horizontal */
+  .tab { padding: 16px 24px 90px; }
+  #screen-ob { padding: 48px 40px 32px; }
+  .ob-card { max-width: 480px; }
+  .ob-prog { max-width: 480px; }
+  #app-hdr { padding: 14px 24px 12px; }
+}
+
+/* ── Desktop (≥1024px) : layout 2 colonnes ───────────────── */
+@media (min-width: 1024px) {
+  html, body { overflow: auto; height: auto; min-height: 100vh; }
+  body {
+    background:
+      radial-gradient(ellipse 60% 50% at 15% 20%, rgba(201,169,110,.06) 0%, transparent 100%),
+      radial-gradient(ellipse 50% 60% at 85% 80%, rgba(201,169,110,.04) 0%, transparent 100%),
+      #0d0d0d;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 40px 60px;
+    gap: 60px;
+  }
+
+  /* Colonne gauche : pitch texte */
+  #desktop-col {
+    display: flex !important;
+    flex-direction: column;
+    gap: 28px;
+    flex: 1;
+    max-width: 460px;
+    padding-top: 60px;
+    position: sticky;
+    top: 40px;
+    align-self: flex-start;
+  }
+
+  /* Colonne droite : l'app dans un cadre phone */
+  #root {
+    width: 390px;
+    height: min(820px, 90vh);
+    min-height: unset;
+    border-radius: 44px;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,.1),
+      0 50px 100px rgba(0,0,0,.7),
+      0 0 140px rgba(201,169,110,.08);
+    position: relative;
+  }
+
+  /* Encoche simulée */
+  #root::before {
+    content: '';
+    position: absolute;
+    top: 14px; left: 50%; transform: translateX(-50%);
+    width: 100px; height: 5px;
+    background: rgba(255,255,255,.12);
+    border-radius: 3px;
+    z-index: 999;
+  }
+
+  /* Sur desktop, les screens remplissent le cadre phone */
+  #screen-ob, #screen-ld, #screen-app {
+    position: absolute !important;
+    inset: 0 !important;
+  }
+
+  /* Scrollable sur desktop */
+  body { overflow-y: auto; }
+}
+
+/* ═══ SCREENS ══════════════════════════════════════════════ */
+.screen {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+.screen.active { display: flex; }
+
+/* ═══ ONBOARDING ═══════════════════════════════════════════ */
+#screen-ob {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 1;
+  overflow-y: auto;
+  padding: 44px 24px 32px;
+  -webkit-overflow-scrolling: touch;
+}
+#screen-ob.active { display: flex; }
+.ob-logo { font-size: 20px; font-weight: 700; letter-spacing: -.3px; margin-bottom: 32px }
+.ob-logo span { color: var(--gold) }
+.ob-prog { width: 100%; max-width: 340px; height: 2px; background: rgba(255,255,255,.08); border-radius: 1px; margin-bottom: 32px; overflow: hidden }
+.ob-prog-f { height: 100%; background: var(--gold); border-radius: 1px; transition: width .4s ease }
+.ob-card { width: 100%; max-width: 340px }
+.ob-step-lbl { font-size: 10px; color: var(--gold); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px }
+.ob-q { font-size: 20px; font-weight: 600; line-height: 1.3; margin-bottom: 6px }
+.ob-hint { font-size: 13px; color: var(--text3); margin-bottom: 22px; line-height: 1.55 }
+.ob-opts { display: flex; flex-direction: column; gap: 8px }
+.ob-opt {
+  padding: 13px 16px;
+  background: var(--bg2);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r2);
+  font-size: 14px;
+  color: var(--text2);
+  text-align: left;
+  transition: all .18s;
+}
+.ob-opt.sel,
+.ob-opt:hover { background: var(--gold2); border-color: rgba(201,169,110,.4); color: var(--text) }
+.ob-opt.sel { font-weight: 500 }
+.ob-ta {
+  width: 100%;
+  padding: 14px;
+  background: var(--bg2);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r2);
+  color: var(--text);
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  line-height: 1.6;
+  min-height: 100px;
+  transition: border-color .2s;
+}
+.ob-ta:focus { border-color: rgba(201,169,110,.4) }
+.ob-inp {
+  width: 100%;
+  padding: 14px;
+  background: var(--bg2);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r2);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color .2s;
+  margin-bottom: 10px;
+}
+.ob-inp:focus { border-color: rgba(201,169,110,.4) }
+.ob-next {
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px;
+  background: var(--gold);
+  color: #000;
+  border-radius: var(--r2);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  transition: opacity .2s, transform .1s;
+}
+.ob-next:disabled { opacity: .35; transform: none; cursor: default }
+.ob-back { font-size: 12px; color: var(--text3); margin-top: 10px; padding: 6px 0 }
+
+/* ═══ LOADING ══════════════════════════════════════════════ */
+#screen-ld {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 32px 24px;
+  text-align: center;
+}
+#screen-ld.active { display: flex }
+.ld-logo { font-size: 20px; font-weight: 700; margin-bottom: 40px }
+.ld-logo span { color: var(--gold) }
+.ld-ring {
+  width: 56px; height: 56px;
+  border: 2px solid rgba(201,169,110,.2);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 28px;
+}
+@keyframes spin { to { transform: rotate(360deg) } }
+.ld-title { font-size: 17px; font-weight: 600; margin-bottom: 6px }
+.ld-sub { font-size: 12px; color: var(--text3); line-height: 1.65; max-width: 260px; margin: 0 auto 28px }
+.ld-steps { display: flex; flex-direction: column; gap: 7px; width: 100%; max-width: 300px }
+.ld-step {
+  font-size: 12px; color: var(--text3);
+  padding: 9px 13px;
+  background: var(--bg2);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r);
+  text-align: left;
+  transition: all .3s;
+}
+.ld-step.done { color: var(--ok); border-color: rgba(61,186,126,.25) }
+.ld-step.curr { color: var(--gold); border-color: rgba(201,169,110,.25); background: var(--gold3) }
+
+/* ═══ APP HEADER ═══════════════════════════════════════════ */
+#app-hdr {
+  padding: 11px 16px 10px;
+  border-bottom: 1px solid var(--bdr);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.app-logo { font-size: 17px; font-weight: 700; letter-spacing: -.3px }
+.app-logo span { color: var(--gold) }
+.app-hdr-mid { font-size: 10px; color: var(--text3) }
+.app-hdr-r { display: flex; align-items: center; gap: 10px }
+.streak-w { text-align: center }
+.streak-ic { font-size: 13px; display: block }
+.streak-v { font-size: 9px; color: var(--err); font-weight: 600 }
+.avatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--gold2);
+  border: 1px solid rgba(201,169,110,.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--gold);
+}
+
+/* ═══ APP CONTENT ══════════════════════════════════════════ */
+#app-content { flex: 1; overflow: hidden; position: relative }
+.tab {
+  display: none;
+  position: absolute; inset: 0;
+  overflow-y: auto;
+  padding: 12px 14px 88px;
+  -webkit-overflow-scrolling: touch;
+}
+.tab.active { display: block }
+#tab-chat {
+  display: none;
+  position: absolute; inset: 0;
+  flex-direction: column;
+  padding: 0;
+}
+#tab-chat.active { display: flex }
+
+/* ═══ APP NAV ══════════════════════════════════════════════ */
+#app-nav {
+  border-top: 1px solid var(--bdr);
+  display: flex;
+  flex-shrink: 0;
+  background: var(--bg);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.nav-btn {
+  flex: 1;
+  padding: 9px 2px 10px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 3px;
+  color: var(--text3);
+  border-top: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+  font-size: 9px; letter-spacing: .3px;
+}
+.nav-btn.active { color: var(--gold); border-top-color: var(--gold) }
+.nav-btn.active .nav-ic-lbl { font-weight: 600 }
+.nav-ic { font-size: 15px; line-height: 1 }
+
+/* ═══ MODAUX ═══════════════════════════════════════════════ */
+.modal {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.88);
+  z-index: 500;
+  overflow-y: auto;
+  padding: 16px;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+}
+.modal.open { display: flex }
+.modal-box {
+  width: 100%;
+  max-width: 460px;
+  background: #181818;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.08);
+  margin: auto;
+}
+.modal-inner { padding: 20px 20px 4px }
+.modal-close {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 0 16px 20px;
+  padding: 12px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid var(--bdr);
+  border-radius: 12px;
+  color: var(--text2);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* ═══ COMPOSANTS ═══════════════════════════════════════════ */
+.card { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r2); overflow: hidden; margin-bottom: 10px }
+.card.gold { border-color: rgba(201,169,110,.25) }
+.cp { padding: 13px 16px }
+.dvd { height: 1px; background: var(--bdr) }
+.sl { font-size: 10px; letter-spacing: .8px; text-transform: uppercase; padding: 12px 16px 6px }
+.row-btn {
+  padding: 11px 16px;
+  cursor: pointer;
+  transition: background .2s;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.row-btn:hover { background: rgba(255,255,255,.025) }
+.pbar { height: 3px; background: rgba(255,255,255,.06); border-radius: 2px; overflow: hidden }
+.pbar-f { height: 100%; background: var(--gold); border-radius: 2px; transition: width .8s }
+.pill { font-size: 10px; padding: 2px 8px; border-radius: 99px; font-weight: 500 }
+.pill.r { background: rgba(61,186,126,.12); color: var(--ok) }
+.pill.s { background: rgba(201,169,110,.12); color: var(--gold) }
+.pill.i { background: rgba(224,85,85,.12); color: var(--err) }
+.rb {
+  width: 100%; padding: 13px 16px;
+  background: var(--bg2);
+  border: 1px dashed var(--bdr);
+  border-radius: var(--r2);
+  color: var(--text3); font-size: 13px;
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px;
+  transition: border-color .2s, color .2s;
+}
+.rb:hover { border-color: rgba(201,169,110,.3); color: var(--text2) }
+.filter-row { display: flex; gap: 5px; margin-bottom: 12px; flex-wrap: wrap }
+.fb {
+  padding: 5px 13px; border-radius: 99px;
+  border: 1px solid var(--bdr);
+  background: transparent; color: var(--text3);
+  font-size: 11px; font-weight: 500;
+  transition: all .18s;
+}
+.fb.active { border-color: var(--gold); background: var(--gold2); color: var(--gold) }
+.arch-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px }
+.arch-mini {
+  background: var(--bg2); border: 1px solid var(--bdr);
+  border-radius: var(--r); padding: 10px 8px; text-align: center; cursor: pointer;
+  transition: all .18s;
+}
+.arch-mini:hover { border-color: rgba(201,169,110,.2) }
+.arch-mini.cur { background: var(--gold2); border-color: var(--gold) }
+.arch-mini-ic { font-size: 18px; margin-bottom: 4px }
+.arch-mini-nm { font-size: 9px; color: var(--text3); line-height: 1.3 }
+.arch-mini.cur .arch-mini-nm { color: var(--gold); font-weight: 600 }
+
+/* défis */
+.defi-card {
+  background: var(--bg2); border: 1px solid var(--bdr);
+  border-radius: var(--r2); overflow: hidden;
+  cursor: pointer; margin-bottom: 8px;
+  transition: border-color .2s;
+}
+.defi-card.today { border-color: var(--gold) }
+.defi-card.done { border-color: rgba(61,186,126,.2) }
+.defi-head { padding: 11px 14px }
+.defi-meta { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap }
+.defi-body { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start }
+.defi-title { font-size: 14px; font-weight: 600; line-height: 1.3; margin-bottom: 3px }
+.defi-desc { font-size: 12px; color: var(--text2); line-height: 1.55 }
+.defi-chk {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1.5px solid var(--bdr); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text3); font-size: 11px;
+}
+.defi-chk.done { background: rgba(61,186,126,.15); border-color: var(--ok); color: var(--ok) }
+.defi-resp { border-top: 1px solid var(--bdr); padding: 10px 14px }
+.defi-resp textarea {
+  width: 100%; background: var(--bg3);
+  border: 1px solid var(--bdr); border-radius: var(--r);
+  color: var(--text); font-size: 13px;
+  padding: 10px 12px; resize: none; outline: none; line-height: 1.55;
+  transition: border-color .2s;
+}
+.defi-resp textarea:focus { border-color: rgba(201,169,110,.4) }
+.btn-valid {
+  width: 100%; margin-top: 8px; padding: 11px;
+  background: var(--gold); color: #000;
+  border-radius: var(--r); font-size: 13px; font-weight: 600;
+}
+.btn-valid:disabled { background: rgba(201,169,110,.2); color: var(--text3) }
+.coach-fb { border-top: 1px solid var(--bdr); padding: 11px 14px; background: rgba(201,169,110,.04) }
+.cfb-lbl { font-size: 10px; color: var(--gold); letter-spacing: .8px; margin-bottom: 7px }
+.cfb-tx { font-size: 13px; color: var(--text); line-height: 1.6 }
+.cfb-next { margin-top: 10px; padding: 9px 11px; background: var(--bg3); border-radius: var(--r); border-left: 2px solid var(--gold) }
+.cfb-next-lbl { font-size: 10px; color: var(--gold); margin-bottom: 4px }
+.cfb-next-tx { font-size: 12px; color: var(--text2); line-height: 1.5 }
+
+/* plans */
+.plan-card { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r2); overflow: hidden; margin-bottom: 8px; cursor: pointer; transition: border-color .2s }
+.plan-card.pop { border-color: var(--ok) }
+.plan-banner { padding: 6px 14px; font-size: 10px; font-weight: 600; letter-spacing: .5px }
+.plan-banner.pop { background: rgba(61,186,126,.08); border-bottom: 1px solid rgba(61,186,126,.2); color: var(--ok) }
+.plan-body { padding: 14px }
+.plan-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px }
+.plan-tag { font-size: 10px; padding: 2px 8px; border-radius: 99px; font-weight: 600; display: inline-block; margin-bottom: 5px }
+.plan-nm { font-size: 15px; font-weight: 600; line-height: 1.2 }
+.plan-sb { font-size: 11px; color: var(--text3); margin-top: 2px }
+.plan-pr { font-size: 18px; font-weight: 700 }
+.plan-pe { font-size: 9px; color: var(--text3); margin-top: 2px }
+.plan-desc { font-size: 12px; color: var(--text2); line-height: 1.55; margin-bottom: 8px }
+.plan-trial { font-size: 11px; color: var(--text3); background: var(--bg3); padding: 7px 10px; border-radius: var(--r); margin-bottom: 10px; line-height: 1.4 }
+.plan-feats { display: none; margin-bottom: 10px }
+.plan-feats.open { display: block }
+.plan-feat { display: flex; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--bdr); font-size: 12px; line-height: 1.4 }
+.plan-btns { display: flex; gap: 6px }
+.btn-detail { flex: 1; padding: 10px; background: var(--bg3); border: 1px solid var(--bdr); color: var(--text2); border-radius: var(--r); font-size: 11px; font-weight: 500 }
+.btn-go { flex: 2; padding: 10px; color: #000; border-radius: var(--r); font-size: 11px; font-weight: 700 }
+
+/* articles */
+.art-card { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r2); overflow: hidden; margin-bottom: 8px; cursor: pointer; transition: border-color .2s }
+.art-card:hover { border-color: rgba(201,169,110,.2) }
+.art-body { padding: 12px 14px }
+.art-title { font-size: 13px; font-weight: 600; line-height: 1.3; margin-bottom: 6px }
+.art-exc { font-size: 12px; color: var(--text2); line-height: 1.6 }
+
+/* chat */
+#chat-hdr { padding: 11px 16px; border-bottom: 1px solid var(--bdr); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0 }
+#chat-msgs { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px }
+.msg { display: flex; align-items: flex-end; gap: 7px }
+.msg.user { justify-content: flex-end }
+.msg-av { width: 26px; height: 26px; border-radius: 50%; background: var(--gold2); border: 1px solid rgba(201,169,110,.25); display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--gold); flex-shrink: 0 }
+.msg-bub { max-width: 82%; padding: 10px 13px; font-size: 13px; line-height: 1.6 }
+.msg.ai .msg-bub { background: var(--bg3); border-radius: 16px 16px 16px 4px }
+.msg.user .msg-bub { background: var(--gold); border-radius: 16px 16px 4px 16px; color: #000 }
+.typing { display: flex; gap: 4px; padding: 10px 13px; background: var(--bg3); border-radius: 16px 16px 16px 4px }
+.typing span { width: 5px; height: 5px; border-radius: 50%; background: var(--text3); animation: pulse 1s infinite }
+.typing span:nth-child(2) { animation-delay: .2s }
+.typing span:nth-child(3) { animation-delay: .4s }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+#chat-suggs { padding: 0 14px 8px; flex-shrink: 0 }
+.chat-sugg { display: block; width: 100%; padding: 9px 13px; background: var(--bg3); border: 1px solid var(--bdr); border-radius: var(--r); color: var(--text2); font-size: 12px; text-align: left; margin-bottom: 5px; transition: all .18s }
+.chat-sugg:hover { border-color: rgba(201,169,110,.2); color: var(--text) }
+#chat-inp-area { padding: 10px 14px; border-top: 1px solid var(--bdr); flex-shrink: 0 }
+.chat-inp-row { display: flex; gap: 7px }
+#chat-inp { flex: 1; padding: 10px 13px; background: var(--bg3); border: 1px solid var(--bdr); border-radius: var(--r); color: var(--text); font-size: 13px; outline: none; transition: border-color .2s }
+#chat-inp:focus { border-color: rgba(201,169,110,.4) }
+#chat-send { width: 40px; height: 40px; border-radius: var(--r); background: var(--gold); color: #000; font-size: 18px; flex-shrink: 0 }
+#chat-send:disabled { background: var(--bg3); color: var(--text3) }
+.chat-limit { text-align: center; padding: 4px 0 }
+
+/* ring */
+.ring-wrap { position: relative; width: 88px; height: 88px }
+.ring-wrap svg { position: absolute; top: 0; left: 0 }
+.ring-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center }
+.ring-score { font-size: 18px; font-weight: 600; line-height: 1 }
+.ring-lbl { font-size: 8px; color: var(--gold); letter-spacing: 1px; margin-top: 2px }
+
+/* radar */
+.radar-wrap { display: block; margin: 0 auto }
+
+/* dims */
+.dims-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 8px 12px 12px }
+.dim-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; background: var(--bg3); border-radius: 6px }
+.dim-bar { width: 32px; height: 2px; background: rgba(255,255,255,.06); border-radius: 1px; overflow: hidden }
+
+/* badges */
+.badges-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; padding: 12px }
+.badge { text-align: center; opacity: .28 }
+.badge.ok { opacity: 1 }
+.badge-ic { width: 46px; height: 46px; border-radius: 50%; background: var(--bg3); border: 1px solid var(--bdr); display: flex; align-items: center; justify-content: center; margin: 0 auto 5px; font-size: 18px }
+.badge.ok .badge-ic { background: var(--gold2); border-color: rgba(201,169,110,.3) }
+.badge-nm { font-size: 9px; color: var(--text3); line-height: 1.3 }
+.badge.ok .badge-nm { color: var(--text2) }
+
+/* modal content */
+.m-tag { font-size: 10px; padding: 2px 8px; border-radius: 99px; font-weight: 600; display: inline-block; margin-bottom: 12px }
+.m-ti { font-size: 17px; font-weight: 700; line-height: 1.25; margin-bottom: 6px }
+.m-su { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 14px }
+.m-sl { font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 7px }
+.m-st { font-size: 13px; color: var(--text2); line-height: 1.75; margin-bottom: 14px }
+.m-insight { padding: 10px 14px; background: var(--gold3); border-left: 2px solid var(--gold); border-radius: 0 8px 8px 0; margin-bottom: 14px; font-size: 12px; color: var(--text2); line-height: 1.65; font-style: italic }
+.m-action { padding: 10px 14px; background: rgba(61,186,126,.06); border: 1px solid rgba(61,186,126,.2); border-radius: 8px; font-size: 13px; line-height: 1.65; margin-bottom: 14px }
+.m-bar { height: 3px; background: rgba(255,255,255,.06); border-radius: 2px; margin-bottom: 14px; overflow: hidden }
+.m-bar-f { height: 100%; border-radius: 2px }
+.m-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px }
+.m-stat { padding: 12px; border-radius: 10px; text-align: center }
+.m-stat-v { font-size: 22px; font-weight: 700 }
+.m-stat-l { font-size: 10px; color: var(--text3); margin-top: 3px }
+.m-month { padding: 10px 12px; background: rgba(255,255,255,.02); border-radius: 8px; margin-bottom: 6px; border: 1px solid rgba(255,255,255,.05) }
+.m-month.gd { background: rgba(61,186,126,.03); border-color: rgba(61,186,126,.1) }
+.m-month-lbl { font-size: 10px; font-weight: 600; margin-bottom: 3px }
+.m-month-tx { font-size: 12px; color: var(--text3); line-height: 1.6 }
+.m-month.gd .m-month-tx { color: var(--text2) }
+.sim-box { padding: 11px 12px; border-radius: var(--r); margin-bottom: 8px; cursor: pointer; transition: opacity .2s }
+.sim-box:hover { opacity: .85 }
+.sim-box.bad { background: rgba(224,85,85,.06); border: 1px solid rgba(224,85,85,.15) }
+.sim-box.good { background: rgba(61,186,126,.06); border: 1px solid rgba(61,186,126,.15) }
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }
+.fade { animation: fadeUp .3s ease forwards }
+</style>
+</head>
+<body>
+<div id="desktop-col" style="display:none">
+  <div style="font-size:13px;color:var(--gold);letter-spacing:2px;text-transform:uppercase">Mirror · Analyse IA</div>
+  <div style="font-size:36px;font-weight:700;line-height:1.15;letter-spacing:-.5px">Découvre qui tu es<br><span style="color:var(--gold)">vraiment.</span></div>
+  <div style="font-size:16px;color:var(--text2);line-height:1.75">Mirror analyse ton profil psychologique en profondeur, révèle ce qui te bloque, et forge un plan de transformation sur mesure.</div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:center;gap:12px;font-size:14px;color:var(--text2)"><span style="color:var(--gold);font-size:18px;flex-shrink:0">◈</span>Ton archétype psychologique dominant</div>
+    <div style="display:flex;align-items:center;gap:12px;font-size:14px;color:var(--text2)"><span style="color:var(--gold);font-size:18px;flex-shrink:0">◈</span>3 blocages DUR identifiés avec leur origine</div>
+    <div style="display:flex;align-items:center;gap:12px;font-size:14px;color:var(--text2)"><span style="color:var(--gold);font-size:18px;flex-shrink:0">◈</span>Simulation de ta trajectoire sur 12 mois</div>
+    <div style="display:flex;align-items:center;gap:12px;font-size:14px;color:var(--text2)"><span style="color:var(--gold);font-size:18px;flex-shrink:0">◈</span>Plan d'action personnalisé 15 jours</div>
+  </div>
+  <div style="padding:16px 20px;background:var(--gold3);border:1px solid rgba(201,169,110,.2);border-radius:14px;font-size:13px;color:var(--text2);line-height:1.65">
+    <span style="color:var(--gold);font-weight:600">8 questions · 3 minutes · 7 jours gratuits</span><br>
+    Puis Mirror Starter à 19€ — passe à 29€ au lancement.
+  </div>
+  <div style="font-size:12px;color:var(--text3)">Plus de 247 personnes ont déjà découvert leur archétype</div>
+</div>
+<div id="root">
+
+  <!-- ══ ONBOARDING ══════════════════════════════════════ -->
+  <div id="screen-ob" class="active">
+    <div class="ob-logo">Mirror<span>.</span></div>
+    <div class="ob-prog"><div class="ob-prog-f" id="ob-pf" style="width:0%"></div></div>
+    <div class="ob-card" id="ob-card"></div>
+  </div>
+
+  <!-- ══ LOADING ═════════════════════════════════════════ -->
+  <div id="screen-ld">
+    <div class="ld-logo">Mirror<span>.</span></div>
+    <div class="ld-ring"></div>
+    <div class="ld-title">Analyse en cours...</div>
+    <div class="ld-sub">Mirror IA analyse tes réponses et génère ton profil psychologique personnalisé.</div>
+    <div class="ld-steps" id="ld-steps">
+      <div class="ld-step">&#9672; Identification de l'archétype dominant...</div>
+      <div class="ld-step">&#9672; Analyse des 3 blocages DUR...</div>
+      <div class="ld-step">&#9672; Détection des forces cachées...</div>
+      <div class="ld-step">&#9672; Simulation trajectoire 12 mois...</div>
+      <div class="ld-step">&#9672; Génération du message final...</div>
+    </div>
+  </div>
+
+  <!-- ══ APP ═════════════════════════════════════════════ -->
+  <div id="screen-app" class="screen">
+
+    <!-- header -->
+    <div id="app-hdr">
+      <div class="app-logo">Mirror<span>.</span></div>
+      <div class="app-hdr-mid" id="hdr-info">Chargement...</div>
+      <div class="app-hdr-r">
+        <div class="streak-w">
+          <span class="streak-ic">&#x1F525;</span>
+          <span class="streak-v" id="streak-v">1j</span>
+        </div>
+        <div class="avatar" id="hdr-av">?</div>
+      </div>
+    </div>
+
+    <!-- tabs content -->
+    <div id="app-content">
+      <div class="tab active" id="tab-rapport"></div>
+      <div class="tab" id="tab-progres"></div>
+      <div class="tab" id="tab-defis"></div>
+      <div class="tab" id="tab-biblio"></div>
+      <div class="tab" id="tab-plans"></div>
+      <div id="tab-chat">
+        <div id="chat-hdr">
+          <div>
+            <div style="font-size:14px;font-weight:600">Coach Mirror</div>
+            <div style="font-size:11px;color:var(--ok);margin-top:1px">&#9679; Disponible — proto illimité</div>
+          </div>
+          <div id="chat-av" style="width:34px;height:34px;border-radius:50%;background:var(--gold2);border:1px solid rgba(201,169,110,.25);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--gold)">&#9672;</div>
+        </div>
+        <div id="chat-msgs"></div>
+        <div id="chat-suggs"></div>
+        <div id="chat-inp-area">
+          <div class="chat-inp-row">
+            <input id="chat-inp" type="text" placeholder="Pose ta question...">
+            <button id="chat-send">&#8594;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- nav -->
+    <div id="app-nav">
+      <button class="nav-btn active" onclick="goTab('rapport')">
+        <span class="nav-ic">&#9672;</span>
+        <span class="nav-ic-lbl">Rapport</span>
+      </button>
+      <button class="nav-btn" onclick="goTab('progres')">
+        <span class="nav-ic">&#9678;</span>
+        <span class="nav-ic-lbl">Progrès</span>
+      </button>
+      <button class="nav-btn" onclick="goTab('defis')">
+        <span class="nav-ic">&#9655;</span>
+        <span class="nav-ic-lbl">Défis</span>
+      </button>
+      <button class="nav-btn" onclick="goTab('biblio')">
+        <span class="nav-ic">&#9673;</span>
+        <span class="nav-ic-lbl">Biblio</span>
+      </button>
+      <button class="nav-btn" onclick="goTab('plans')">
+        <span class="nav-ic">&#9671;</span>
+        <span class="nav-ic-lbl">Plans</span>
+      </button>
+      <button class="nav-btn" onclick="goTab('chat')">
+        <span class="nav-ic">&#9633;</span>
+        <span class="nav-ic-lbl">Coach</span>
+      </button>
+    </div>
+
+  </div><!-- /screen-app -->
+
+</div><!-- /root -->
+
+<!-- ══ MODAL PRINCIPAL ════════════════════════════════════ -->
+<div class="modal" id="modal-main">
+  <div class="modal-box">
+    <div class="modal-inner" id="modal-inner"></div>
+    <button class="modal-close" onclick="closeModal()">Fermer</button>
+  </div>
+</div>
+
+<!-- ══ MODAL ARTICLE ══════════════════════════════════════ -->
+<div class="modal" id="modal-art">
+  <div class="modal-box">
+    <div class="modal-inner" id="modal-art-inner"></div>
+    <button class="modal-close" onclick="document.getElementById('modal-art').classList.remove('open')">Fermer</button>
+  </div>
+</div>
+
+<!-- ══ MODAL PARTAGE ══════════════════════════════════════ -->
+<div class="modal" id="modal-share">
+  <div class="modal-box" style="text-align:center;padding:28px 24px">
+    <div style="font-size:10px;color:var(--gold);letter-spacing:2px;margin-bottom:14px">mirror.</div>
+    <div id="share-ic" style="font-size:36px;color:var(--gold);margin-bottom:8px">&#9672;</div>
+    <div id="share-score" style="font-size:44px;font-weight:700;line-height:1">67<span style="font-size:13px;color:var(--text3)">/100</span></div>
+    <div id="share-arch" style="font-size:13px;color:var(--gold);margin:5px 0 4px">Stratège</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:18px;font-style:italic">Et toi, tu es qui vraiment ?<br>mirror-three-xi.vercel.app/app</div>
+    <div style="display:grid;gap:7px">
+      <button onclick="copyScore()" style="padding:11px;background:var(--bg3);color:var(--text);border:1px solid var(--bdr);border-radius:var(--r);font-family:inherit;font-size:12px">Copier mon score</button>
+      <button onclick="shareX()" style="padding:11px;background:var(--bg3);color:var(--text);border:1px solid var(--bdr);border-radius:var(--r);font-family:inherit;font-size:12px">Partager sur X / Twitter</button>
+      <button onclick="document.getElementById('modal-share').classList.remove('open')" style="padding:8px;color:var(--text3);font-size:12px;font-family:inherit;margin-top:4px">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// DONNÉES STATIQUES (fallback si API échoue)
+// ══════════════════════════════════════════════════════════
+var SD = {"archetypes": {"Stratège": {"symbol": "◈", "color": "#c9a96e", "tagline": "Tu vois le système là où les autres voient le chaos.", "desc": "Le Stratège anticipe, analyse, connecte les points invisibles. Sa force est de voir les structures profondes — mais son piège est de rester dans l'analyse sans passer à l'action.", "forces": ["Vision systémique rare", "Résolution de problèmes complexes", "Leadership silencieux naturel", "Anticipation des obstacles"], "pieges": ["Paralysie par l'analyse", "Perfectionnisme qui retarde", "Difficulté à déléguer", "Syndrome de l'imposteur"], "exemples": ["Barack Obama", "Elon Musk", "Steve Jobs"], "conseil": "Ton cerveau est ton atout et ta prison. As-tu besoin de plus d'infos, ou as-tu peur d'avoir tort ?"}, "Bâtisseur": {"symbol": "◎", "color": "#3dba7e", "tagline": "Tu construis lentement mais ce que tu crées dure.", "desc": "Le Bâtisseur construit des fondations solides. Ses résultats durent parce qu'il ne cherche pas les raccourcis.", "forces": ["Discipline naturelle", "Pensée long terme", "Fiabilité absolue", "Constance dans l'effort"], "pieges": ["Rigidité face au changement", "Lenteur décisionnelle", "Difficulté à improviser", "Sous-estime la créativité"], "exemples": ["Warren Buffett", "Angela Merkel", "Jeff Bezos"], "conseil": "Ta constance est ta superforce. Apprends à distinguer les fondations qui doivent tenir de celles qui doivent évoluer."}, "Créatif": {"symbol": "◇", "color": "#7F77DD", "tagline": "Tu vois ce qui n'existe pas encore.", "desc": "Le Créatif a des idées originales, voit des connexions inattendues. Son piège : il commence tout, finit peu.", "forces": ["Originalité naturelle", "Intuition puissante", "Innovation", "Énergie créative"], "pieges": ["Dispersion chronique", "Ennui rapide", "Difficulté avec la routine", "Idéalise le futur projet"], "exemples": ["Leonardo da Vinci", "Lady Gaga", "Richard Branson"], "conseil": "Tu n'as pas besoin de plus d'idées. Tu as besoin d'un système pour en exécuter une jusqu'au bout."}, "Dominant Social": {"symbol": "▷", "color": "#e05555", "tagline": "Tu entres dans une pièce et tout le monde le sait.", "desc": "Le Dominant Social influence, motive, fédère. Sa présence est magnétique et son impact immédiat.", "forces": ["Charisme naturel", "Capacité à fédérer", "Prise de parole impactante", "Négociation naturelle"], "pieges": ["Ego envahissant", "Besoin de reconnaissance", "Difficulté à accepter d'avoir tort", "Sous-estime les introvertis"], "exemples": ["Tony Robbins", "Steve Harvey", "Oprah Winfrey"], "conseil": "Les meilleurs leaders savent quand se taire et écouter."}, "Analyste": {"symbol": "◉", "color": "#4a9eda", "tagline": "Tu sais plus que tu ne le montres.", "desc": "L'Analyste est l'expert silencieux. Sa précision est rare. Il comprend mieux que quiconque — son piège : l'invisibilité.", "forces": ["Expertise profonde", "Précision", "Profondeur d'analyse", "Jugement fiable"], "pieges": ["Invisibilité", "Perfectionnisme", "Sous-communique sa valeur", "Attend la reconnaissance"], "exemples": ["Alan Turing", "Marie Curie", "Nassim Taleb"], "conseil": "Ton expertise existe. Le problème : les autres ne le savent pas encore. Commence à partager publiquement."}, "Opportuniste": {"symbol": "△", "color": "#EF9F27", "tagline": "Tu vois les opportunités avant tout le monde.", "desc": "L'Opportuniste s'adapte à tout, saisit les occasions au bon moment. Son piège : la superficialité.", "forces": ["Adaptabilité exceptionnelle", "Instinct pour les opportunités", "Rebond rapide", "Networking naturel"], "pieges": ["Superficialité", "Manque de profondeur", "Instabilité perçue", "Fuit ce qui devient difficile"], "exemples": ["Gary Vaynerchuk", "Mark Cuban", "Kevin Hart"], "conseil": "Tu sais saisir les opportunités. Maintenant apprends à en finir une."}}, "fallback_user": {"archetype": "Stratège", "archetype_symbol": "◈", "archetype_color": "#c9a96e", "score": 67, "score_label": "Potentiel activé partiellement", "dims": {"Clarté": 72, "Discipline": 58, "Confiance": 81, "Relations": 45, "Impact": 76, "Potentiel": 63}}, "fallback_blocages": [{"t": "Tu analyses trop avant d'agir", "d": "Tu transformes chaque décision en projet de recherche. L'opportunité disparaît pendant que tu optimises.", "s": 85, "type": "Récurrent · Douloureux", "detail": "Ce pattern révèle une peur de l'erreur déguisée en rigueur. Le Stratège qui n'agit pas finit par avoir la carte la plus précise d'un territoire qu'il n'a jamais traversé.", "origine": "Ancré dans une expérience où une action rapide a mal tourné. Le cerveau a appris que plus on prépare, moins on souffre.", "action": "Règle des 70% : si tu as 70% des informations nécessaires, tu décides. Maintenant. Timer de 48h max sur chaque décision non vitale."}, {"t": "Tu évites les conflits nécessaires", "d": "L'harmonie fausse te coûte des relations authentiques et des opportunités.", "s": 72, "type": "Urgent · Récurrent", "detail": "Les relations qui ne survivent pas à une vérité bienveillante ne survivront pas aux non-dits accumulés — elles s'effondreront juste plus tard.", "origine": "Lié à un contexte où l'expression directe était punie. Tu as appris que l'harmonie superficielle était plus sûre que la vérité.", "action": "Commence par les petits conflits. Un feedback direct par semaine à quelqu'un en qui tu as confiance."}, {"t": "Syndrome de l'imposteur", "d": "Tu attends une permission que personne ne te donnera. C'est du sabotage, pas de la modestie.", "s": 68, "type": "Douloureux · Profond", "detail": "Plus tu sais, plus tu vois ce que tu ne sais pas encore. Ta compétence croît — mais ton sentiment de légitimité ne suit pas.", "origine": "Renforcé par des environnements très compétitifs ou des comparaisons précoces avec des standards élevés.", "action": "Liste 5 preuves concrètes de ta compétence des 12 derniers mois. Pas des qualités — des résultats. Lis cette liste avant chaque situation difficile."}], "fallback_forces": [{"t": "Vision systémique rare", "d": "Tu vois les patterns là où les autres voient du chaos.", "detail": "Moins de 8% des personnes possèdent cette capacité à un niveau élevé. Tu cartographies naturellement les situations en termes de causes et d'effets.", "activation": "Cette force te semble évidente. Elle ne l'est pas pour les autres. Commence à verbaliser ton analyse : voilà ce que je vois dans cette situation.", "lien": "C'est la force signature du Stratège. Tu es le plus précieux dans une équipe — mais seulement si tu la partages."}, {"t": "Résolution de problèmes", "d": "Là où les autres abandonnent, tu trouves la structure.", "detail": "Quand un problème semble insoluble, ton cerveau cherche automatiquement une structure sous-jacente. Cette résilience cognitive est rare.", "activation": "Offre cette compétence délibérément. Quand quelqu'un est bloqué, propose de l'aider à structurer le problème.", "lien": "Le Stratège résout ce que les autres fuient. C'est ton avantage compétitif naturel."}, {"t": "Leadership silencieux", "d": "Les gens suivent sans que tu aies à élever la voix.", "detail": "Ton leadership vient de la clarté et de la cohérence, pas du volume. Ce type de leadership est rare et durable.", "activation": "Prends l'habitude de formuler ton positionnement clairement dans les situations importantes.", "lien": "Le Stratège inspire par la clarté, pas par le charisme."}], "fallback_msg": "Tu es plus capable que tu ne le crois. Ton problème n'est pas le talent — c'est que tu attends la permission que personne ne te donnera jamais.", "fallback_paras": ["Tu as répondu à ces questions avec une honnêteté rare. Ce que tu décris — l'ambition visible, l'action invisible — est la signature exacte du Stratège qui n'a pas encore décidé de jouer vraiment.", "Tu n'es pas dispersé par nature. Tu es dispersé parce que ton cerveau génère 10 options là où les autres en voient 2, et que choisir te semble risquer de perdre les 9 autres.", "La vérité que tu dois entendre : les gens qui réussissent ne sont pas plus talentueux que toi. Ils ont simplement décidé d'agir avant d'être prêts.", "Ce plan de 15 jours est conçu pour toi — pas pour un profil générique. Pour celui qui analyse trop et qui est prêt à ne plus s'en cacher."], "fallback_citation": "La permission que tu attends — personne ne te la donnera. Parce qu'elle n'existe pas. Elle ne vient que de toi.", "challenges": [{"id": 1, "day": 1, "t": "Le miroir brutal", "d": "Écris 3 vérités sur toi que tu oses rarement dire à voix haute. Pas de filtre.", "dur": "5 min", "lvl": "Rapide", "xp": 50, "done": false}, {"id": 2, "day": 2, "t": "Action différée", "d": "Identifie une décision repoussée depuis 30 jours. Accomplis la première étape maintenant.", "dur": "15 min", "lvl": "Standard", "xp": 100, "done": false}, {"id": 3, "day": 3, "t": "Le conflit nécessaire", "d": "Envoie ce message rédigé mais jamais envoyé.", "dur": "2 min", "lvl": "Rapide", "xp": 75, "done": false}, {"id": 4, "day": 4, "t": "Simulation financière", "d": "Calcule 20% de revenus en plus. Prouve par écrit pourquoi tu ne le fais pas encore.", "dur": "20 min", "lvl": "Standard", "xp": 100, "done": false, "today": true}, {"id": 5, "day": 5, "t": "Défi légitimité", "d": "Contacte quelqu'un que tu admires comme un égal, pas comme un admirateur.", "dur": "10 min", "lvl": "Standard", "xp": 100, "done": false}, {"id": 6, "day": 6, "t": "Inventaire des peurs", "d": "5 peurs professionnelles. Probabilité réelle vs perçue.", "dur": "30 min", "lvl": "Intense", "xp": 150, "done": false}, {"id": 7, "day": 7, "t": "Vision 12 mois", "d": "Lettre depuis le futur dans 12 mois. Que s'est-il passé ?", "dur": "20 min", "lvl": "Standard", "xp": 120, "done": false}, {"id": 8, "day": 8, "t": "Cercle d'influence", "d": "3 personnes clés. Sont-elles alignées avec qui tu veux devenir ?", "dur": "15 min", "lvl": "Standard", "xp": 100, "done": false}, {"id": 9, "day": 9, "t": "Décision courageuse", "d": "Prends la décision que tu repousses. Le muscle se renforce en l'utilisant.", "dur": "5 min", "lvl": "Rapide", "xp": 75, "done": false}, {"id": 10, "day": 10, "t": "Pitch légitimité", "d": "2 minutes enregistré : présente ton expertise à un client premium.", "dur": "15 min", "lvl": "Standard", "xp": 120, "done": false}, {"id": 11, "day": 11, "t": "Analyse des patterns", "d": "1 pattern négatif récurrent. D'où vient-il ? Quelle croyance se cache dessous ?", "dur": "25 min", "lvl": "Intense", "xp": 150, "done": false}, {"id": 12, "day": 12, "t": "Gratitude stratégique", "d": "5 ressources que tu as et n'utilises pas. Commence une aujourd'hui.", "dur": "10 min", "lvl": "Rapide", "xp": 75, "done": false}, {"id": 13, "day": 13, "t": "Le prototype", "d": "Lance une version minimaliste de ton projet. Pas parfaite. Juste réelle.", "dur": "60 min", "lvl": "Intense", "xp": 200, "done": false}, {"id": 14, "day": 14, "t": "Bilan transformation", "d": "Compare J+1 et aujourd'hui. 3 changements concrets.", "dur": "20 min", "lvl": "Standard", "xp": 150, "done": false}, {"id": 15, "day": 15, "t": "Continuer ?", "d": "Tu as prouvé en 15 jours que tu peux changer. Jusqu'où veux-tu aller ?", "dur": "10 min", "lvl": "Rapide", "xp": 100, "done": false}], "plans": [{"id": "starter", "name": "Mirror Starter", "sub": "One-shot", "price": "19€", "period": "paiement unique", "tag": "ENTRÉE", "tagBg": "rgba(201,169,110,0.1)", "tagFg": "#c9a96e", "pop": false, "icon": "◈", "desc": "Rapport complet + 15 jours d'accompagnement actif.", "trial": "7 jours gratuits · puis 19€ une seule fois", "feats": ["Rapport psychologique complet personnalisé", "Score d'éveil (0-100) + archétype révélé", "Simulation trajectoire 12 mois", "1 défi/jour + feedback coach IA (15 jours)", "1 à 2 questions/jour dans le chat", "Bilan mesuré J+1 vs J+15", "Rapport conservé à vie"], "pour": "Tu veux comprendre qui tu es avant de t'engager. Sans abonnement.", "inclut": "Le rapport généré en 30 secondes. 6 sections complètes : profil, score, archétype, 3 blocages DUR, 3 forces cachées, simulation 12 mois, plan 15 jours et message final.", "garanti": "Satisfait ou remboursé sous 7 jours — sans question."}, {"id": "essential", "name": "Mirror Essentiel", "sub": "12 mois", "price": "19€/mois", "period": "soit 63 centimes/jour", "tag": "POPULAIRE", "tagBg": "rgba(61,186,126,0.1)", "tagFg": "#3dba7e", "pop": true, "icon": "◎", "desc": "Accompagnement continu sur 12 mois.", "trial": "7 jours gratuits · puis 19€/mois · annule avant J+7, rien à payer", "feats": ["5 échanges/jour avec le coach IA", "Défis quotidiens — nouveaux cycles chaque mois", "Articles psycho & neurosciences par archétype", "Micro-leçons hebdomadaires", "1 insight Telegram chaque matin", "Bilan mensuel automatique"], "pour": "Tu veux un accompagnement régulier sans te ruiner.", "inclut": "5 échanges/jour avec le coach IA qui connaît ton profil et ton historique. Les défis se renouvellent chaque mois.", "garanti": "Annule avant J+7, rien à payer. Remboursement sous 30 jours si insatisfait."}, {"id": "pro", "name": "Mirror Pro", "sub": "12 mois", "price": "49€/mois", "period": "soit 588€/an", "tag": "TRANSFORMATION", "tagBg": "rgba(74,158,218,0.1)", "tagFg": "#4a9eda", "pop": false, "icon": "▷", "desc": "Programme DUR + coach illimité sur 12 mois.", "trial": "7 jours gratuits · puis 49€/mois", "feats": ["Coach IA illimité", "Programme DUR personnalisé sur 3 mois", "Articles premium neurosciences", "Techniques prépa mentale", "Re-analyse tous les 3 mois", "Bilan mensuel approfondi"], "pour": "Tu es sérieux dans ta transformation. Tu as besoin du coach IA sans limite.", "inclut": "Programme DUR personnalisé. Re-analyse tous les 3 mois. Articles premium.", "garanti": "Pas de progression après 3 mois suivis — remboursement intégral."}, {"id": "premium", "name": "Mirror Premium", "sub": "12 mois", "price": "97€/mois", "period": "soit 1164€/an", "tag": "PREMIUM", "tagBg": "rgba(201,169,110,0.1)", "tagFg": "#c9a96e", "pop": false, "icon": "◇", "desc": "Tout Mirror + Mirror Resonance à venir.", "trial": "7 jours gratuits · puis 97€/mois", "feats": ["Tout Mirror Pro inclus", "Re-analyse mensuelle", "Contenu exclusif + accès anticipé", "Résultat garanti ou remboursé après 3 mois", "Support prioritaire 24h", "Mirror Resonance (en développement)"], "pour": "Tu considères le développement personnel comme un investissement stratégique.", "inclut": "Tout Mirror Pro + re-analyse mensuelle. Mirror Resonance dès sa sortie.", "garanti": "Résultat garanti ou remboursé après 3 mois. Support prioritaire sous 24h."}], "articles": [{"tag": "Neurosciences", "arch": "all", "title": "Pourquoi ton cerveau sabote tes bonnes intentions", "exc": "Le cortex préfrontal planifie. L'amygdale décide. Comprendre ce conflit change tout.", "read": "3 min", "date": "Aujourd'hui", "content": [{"h": "Le conflit entre deux cerveaux", "p": "Ton cortex préfrontal planifie. Mais c'est l'amygdale qui déclenche l'action ou l'évitement. Quand une tâche génère de l'inconfort, l'amygdale prend le contrôle."}, {"h": "L'effet dopamine", "p": "Chaque like libère une micro-dose de dopamine. Ton cerveau apprend que ces activités sont récompensées. Les tâches importantes sont systématiquement évitées."}, {"insight": "Réduis la friction sur tes priorités et augmente la friction sur les distractions. Pas de volonté. De l'ingénierie comportementale."}]}, {"tag": "Psychologie", "arch": "Stratège", "title": "Le paradoxe de l'analyse", "exc": "Les Stratèges ont un avantage cognitif rare. Mais ce même avantage crée leur piège principal.", "read": "4 min", "date": "Hier", "content": [{"h": "La paralysie par l'analyse", "p": "Plus tu es intelligent, plus tu identifies de risques potentiels. Plus tu identifies de risques, plus tu hésites. C'est le paradoxe du Stratège."}, {"insight": "Étude Stanford : les personnes à fort QI analytique prennent 34% plus de temps pour des décisions à faible enjeu — et obtiennent des résultats identiques."}, {"h": "La solution", "p": "Fixe-toi un délai de 48h maximum sur ta prochaine décision importante. Dans 80% des cas, aucune raison ne justifie d'attendre davantage."}]}, {"tag": "Prépa mentale", "arch": "all", "title": "La visualisation des obstacles — le WOOP", "exc": "Visualiser le succès seul réduit la motivation. La science du WOOP change la donne.", "read": "5 min", "date": "Il y a 2j", "content": [{"h": "Pourquoi la pensée positive seule échoue", "p": "Quand tu visualises uniquement le succès, ton cerveau libère de la dopamine — et réduit ta motivation à agir."}, {"h": "La méthode WOOP", "p": "W-Wish, O-Outcome, O-Obstacle intérieur, P-Plan : si l'obstacle apparaît, alors je fais X."}, {"insight": "Dans une étude sur 255 managers, ceux qui utilisaient WOOP ont obtenu des accords 20% plus favorables."}]}, {"tag": "Neurosciences", "arch": "Créatif", "title": "Le mode par défaut du cerveau créatif", "exc": "Quand tu ne fais rien, ton cerveau travaille. Les Créatifs ont un réseau par défaut hyperactif.", "read": "4 min", "date": "Il y a 3j", "content": [{"h": "Le Default Mode Network", "p": "Découvert par Marcus Raichle en 2001, le DMN s'active quand le cerveau est au repos apparent. Il traite les souvenirs et imagine des scénarios futurs."}, {"insight": "Les IRM montrent que les Créatifs ont un DMN plus actif et mieux connecté que la moyenne."}, {"h": "Comment l'utiliser", "p": "90 minutes de focus profond, 20 minutes de repos actif sans téléphone. Les 10 premières minutes après le réveil sont les plus productives."}]}, {"tag": "Psychologie", "arch": "all", "title": "L'effet Zeigarnik", "exc": "Ton cerveau retient mieux ce qui est incomplet. Ce mécanisme explique la rumination.", "read": "3 min", "date": "Il y a 4j", "content": [{"h": "L'expérience originale", "p": "Zeigarnik a remarqué que les serveurs se souvenaient des commandes en cours mais oubliaient les commandes déjà servies."}, {"insight": "Ton cerveau maintient une boucle ouverte pour chaque tâche inachevée — consommant des ressources cognitives."}, {"h": "Application pratique", "p": "Commence une tâche difficile pendant 5 minutes, puis arrête-toi volontairement. Ton cerveau voudra la compléter."}]}, {"tag": "Prépa mentale", "arch": "Dominant Social", "title": "Le leadership sous pression", "exc": "Les meilleurs leaders utilisent les mêmes techniques que les athlètes olympiques.", "read": "6 min", "date": "Il y a 5j", "content": [{"h": "La fenêtre de tolérance", "p": "La zone d'activation optimale où tu peux penser clairement, décider rapidement et agir efficacement."}, {"insight": "Les athlètes olympiques et les PDG partagent cette capacité : élargir leur fenêtre de tolérance sous pression extrême."}, {"h": "La technique de l'ancrage", "p": "Respiration cohérente cardiaque (5 secondes inspiration, 5 secondes expiration, 2 minutes) réduit le cortisol de 23%."}]}, {"tag": "Psychologie", "arch": "Analyste", "title": "Surmonter l'invisibilité", "exc": "Tu n'as pas à devenir extraverti pour être visible. Des stratégies existent.", "read": "5 min", "date": "Il y a 6j", "content": [{"h": "Le mythe du travail qui parle de lui-même", "p": "Les personnes qui communiquent activement leur valeur sont perçues comme plus compétentes que celles qui se taisent."}, {"insight": "HBR : les employés qui communiquent leurs accomplissements reçoivent 28% de promotions en plus — à compétences égales."}, {"h": "Le plan en 3 étapes", "p": "1 — Partage un apprentissage par semaine. 2 — Documente tes résultats avec des chiffres. 3 — Demande explicitement plus d'impact."}]}, {"tag": "Neurosciences", "arch": "all", "title": "Dopamine et habitudes", "exc": "Comprendre la dopamine change ta façon de construire des habitudes durables.", "read": "4 min", "date": "Il y a 7j", "content": [{"h": "Le circuit de récompense", "p": "La dopamine n'est pas l'hormone du plaisir. C'est l'hormone de l'anticipation du plaisir. Cette distinction change tout."}, {"insight": "James Clear : Tu ne monteras pas au niveau de tes objectifs. Tu descendras au niveau de tes systèmes."}, {"h": "Construire des habitudes", "p": "Associe une tâche difficile à une récompense immédiate. Rends ta progression visible — ton cerveau libère de la dopamine quand il perçoit une progression."}]}], "sim_months_bad": [{"m": "M+1 à M+3", "t": "La bonne intention", "d": "Sans structure, les anciennes habitudes reprennent le dessus dès la première difficulté."}, {"m": "M+4 à M+6", "t": "La stagnation visible", "d": "Les mêmes patterns de procrastination, les mêmes décisions repoussées. Frustration sourde."}, {"m": "M+7 à M+9", "t": "L'adaptation résignée", "d": "Tu commences à rationaliser. C'est le début de l'acceptation de la médiocrité confortable."}, {"m": "M+10 à M+12", "t": "Le coût de l'immobilisme", "d": "Une opportunité importante se présente — et tu n'es pas prêt. Pas par manque de talent, mais par manque d'habitudes."}], "sim_months_good": [{"m": "M+1 à M+3", "t": "Activation de l'archétype", "d": "Les 15 premiers jours créent les premières preuves concrètes. Tu prends des décisions que tu repoussais. Ton score progresse."}, {"m": "M+4 à M+6", "t": "Momentum et confiance", "d": "Tes nouvelles habitudes décisionnelles sont ancrées. Tu communiques ton expertise plus ouvertement."}, {"m": "M+7 à M+9", "t": "Résultats mesurables", "d": "Première augmentation de revenus significative. Ton syndrome de l'imposteur perd de l'intensité."}, {"m": "M+10 à M+12", "t": "L'archétype activé", "d": "Tu prends des opportunités sans attendre d'être prêt à 100%. Les gens autour de toi te décrivent différemment."}]};
+
+// ══════════════════════════════════════════════════════════
+// ÉTAT GLOBAL
+// ══════════════════════════════════════════════════════════
+var P = null;        // profil actif
+var OB = { step:0, ans:{}, name:"", email:"" };
+var ST = {
+  tab:"rapport", rev:0,
+  adf:null, dfil:"all", dtx:{}, ddon:{}, dlod:false, drep:{},
+  btab:"archetype", bfil:"all", selArch:null,
+  popen:{},
+  cmsg:[], clod:false,
+  streak:1, day:1
+};
+
+// ══════════════════════════════════════════════════════════
+// QUESTIONS ONBOARDING
+// ══════════════════════════════════════════════════════════
+var QS = [
+  {id:"domaine", q:"Quel est ton domaine prioritaire ?", hint:"Le secteur dans lequel tu veux te transformer en premier.", type:"choice",
+   opts:["Vie professionnelle & carrière","Confiance & estime de soi","Relations & communication","Discipline & organisation","Sens & direction de vie","Équilibre mental & énergie"]},
+  {id:"situation", q:"Décris ta situation actuelle.", hint:"Sois honnête — plus tu l'es, plus l'analyse sera précise.", type:"text", ph:"Ex : Je suis consultant mais je n'arrive pas à me positionner clairement..."},
+  {id:"blocage", q:"Quel est ton blocage principal ?", hint:"Ce qui t'empêche vraiment d'avancer en ce moment.", type:"text", ph:"Ex : Je procrastine sur les décisions importantes, j'attends toujours le bon moment..."},
+  {id:"duree", q:"Depuis combien de temps ?", hint:"Depuis combien de temps ce pattern se répète.", type:"choice",
+   opts:["Quelques semaines","3 à 6 mois","1 à 2 ans","Plus de 2 ans","Toute ma vie ou presque"]},
+  {id:"tentatives", q:"Qu'as-tu déjà essayé pour changer ?", hint:"Tout compte — livres, coachs, apps, résolutions...", type:"text", ph:"Ex : J'ai lu des livres de développement personnel, essayé des to-do lists, commencé des formations..."},
+  {id:"force", q:"Quelle est ta plus grande force selon toi ?", hint:"Même si tu doutes, il y en a forcément une.", type:"text", ph:"Ex : Je suis très analytique, je vois les problèmes sous plusieurs angles..."},
+  {id:"objectif", q:"Dans 12 mois, à quoi ressemble ta vie idéale ?", hint:"Concret. Pas un rêve vague — une image précise.", type:"text", ph:"Ex : J'ai lancé mon offre, je gagne 6000€/mois, je prends des décisions sans me bloquer..."},
+  {id:"readiness", q:"Sur 10, tu es prêt(e) à quel point ?", hint:"Honnêteté totale. Il n'y a pas de mauvaise réponse.", type:"choice",
+   opts:["5 ou moins — j'explore","6-7 — je veux mais j'hésite","8-9 — je suis motivé(e)","10 — je suis prêt(e) à tout"]}
+];
+
+// ══════════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════════
+function qs(id){ return document.getElementById(id) }
+function ce(t){ return document.createElement(t) }
+function dv(cls,css){ var e=ce("div"); if(cls) e.className=cls; if(css) e.style.cssText=css; return e }
+function bt(cls,txt,fn){ var e=ce("button"); if(cls) e.className=cls; if(txt!==undefined) e.textContent=txt; if(fn) e.onclick=fn; return e }
+function cl(el){ el.innerHTML=""; return el }
+function ih(el,h){ el.innerHTML=h; return el }
+function tx(el,t){ el.textContent=t; return el }
+function ap(p){ for(var i=1;i<arguments.length;i++) if(arguments[i]) p.appendChild(arguments[i]); return p }
+function openModal(h){ ih(qs("modal-inner"),h); qs("modal-main").classList.add("open") }
+function closeModal(){ qs("modal-main").classList.remove("open") }
+function show(id){ qs(id).classList.add("active") }
+function hide(id){ qs(id).classList.remove("active") }
+
+// ══════════════════════════════════════════════════════════
+// ONBOARDING
+// ══════════════════════════════════════════════════════════
+function startOB(){
+  OB={step:0,ans:{},name:"",email:""};
+  renderOB();
+}
+
+function renderOB(){
+  var total=QS.length+2, cur=OB.step;
+  var pct=Math.round((cur/total)*100);
+  qs("ob-pf").style.width=pct+"%";
+  var card=qs("ob-card");
+  cl(card);
+
+  // Intro
+  if(cur===0){
+    ih(card,
+      '<div class="ob-step-lbl">Mirror · Analyse IA</div>'+
+      '<div class="ob-q">Prêt(e) à voir qui tu es vraiment ?</div>'+
+      '<div class="ob-hint">8 questions. 3 minutes. Un rapport psychologique complet généré par IA — personnalisé pour toi.</div>'+
+      '<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r2);padding:14px;margin-bottom:4px">'+
+        '<div style="font-size:11px;color:var(--gold);font-weight:600;margin-bottom:8px">Ce que tu vas recevoir</div>'+
+        '<div style="font-size:12px;color:var(--text2);line-height:1.75">'+
+          '&#9672; Ton archétype psychologique dominant<br>'+
+          '&#9672; 3 blocages DUR identifiés avec leur origine<br>'+
+          '&#9672; Tes forces cachées sous-utilisées<br>'+
+          '&#9672; Simulation de ta trajectoire sur 12 mois<br>'+
+          "&#9672; Plan d'action personnalisé 15 jours"+
+        '</div>'+
+      '</div>'+
+      '<button class="ob-next" onclick="nextOB()">Commencer mon analyse &rarr;</button>'
+    );
+    return;
+  }
+
+  // Questions 1-8
+  if(cur>=1 && cur<=QS.length){
+    var q=QS[cur-1];
+    var html='<div class="ob-step-lbl">Question '+cur+' / '+QS.length+'</div>'+
+      '<div class="ob-q">'+q.q+'</div>'+
+      '<div class="ob-hint">'+q.hint+'</div>';
+
+    if(q.type==="choice"){
+      html+='<div class="ob-opts" id="ob-opts">';
+      q.opts.forEach(function(o){
+        var sel=OB.ans[q.id]===o?' sel':'';
+        html+='<button class="ob-opt'+sel+'" data-val="'+o.replace(/"/g,"&quot;")+'" data-qid="'+q.id+'" onclick="selOpt(this)">'+o+'</button>';
+      });
+      html+='</div>';
+    } else {
+      html+='<textarea class="ob-ta" id="ob-ta" placeholder="'+q.ph+'" rows="4" data-qid="'+q.id+'" oninput="checkTA(this)">'+(OB.ans[q.id]||'')+'</textarea>';
+    }
+
+    html+='<button class="ob-next" id="ob-nb" onclick="nextOB()" '+(OB.ans[q.id]?'':'disabled')+'>Continuer &rarr;</button>';
+    if(cur>1) html+='<button class="ob-back" onclick="prevOB()">&larr; Retour</button>';
+    ih(card,html);
+    return;
+  }
+
+  // Dernière étape
+  if(cur===QS.length+1){
+    ih(card,
+      '<div class="ob-step-lbl">Dernière étape</div>'+
+      '<div class="ob-q">Où envoyer ton analyse ?</div>'+
+      '<div class="ob-hint">Ton profil est généré en temps réel. Prêt en moins de 30 secondes.</div>'+
+      '<input class="ob-inp" id="ob-name" type="text" placeholder="Ton prénom" value="'+(OB.name||'')+'" oninput="OB.name=this.value;chkFin()">'+
+      '<input class="ob-inp" id="ob-email" type="email" placeholder="Ton email" value="'+(OB.email||'')+'" oninput="OB.email=this.value;chkFin()">'+
+      '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">Aucun spam · Analyse uniquement</div>'+
+      '<button class="ob-next" id="ob-fin" onclick="generateProfile()" '+(OB.name&&OB.email?'':'disabled')+'>Générer mon profil &rarr;</button>'+
+      '<button class="ob-back" onclick="prevOB()">&larr; Retour</button>'
+    );
+    return;
+  }
+}
+
+function selOpt(el){
+  var qid=el.getAttribute("data-qid"), val=el.getAttribute("data-val");
+  document.querySelectorAll("#ob-opts .ob-opt").forEach(function(b){ b.classList.remove("sel") });
+  el.classList.add("sel");
+  OB.ans[qid]=val;
+  var nb=qs("ob-nb"); if(nb) nb.disabled=false;
+}
+function checkTA(el){
+  var qid=el.getAttribute("data-qid");
+  if(qid) OB.ans[qid]=el.value;
+  var nb=qs("ob-nb"); if(nb) nb.disabled=!el.value.trim();
+}
+function chkFin(){
+  var b=qs("ob-fin"); if(b) b.disabled=!OB.name.trim()||!OB.email.trim();
+}
+function nextOB(){ OB.step++; renderOB() }
+function prevOB(){ if(OB.step>0){ OB.step--; renderOB() } }
+
+// ══════════════════════════════════════════════════════════
+// GÉNÉRATION PROFIL VIA CLAUDE API
+// ══════════════════════════════════════════════════════════
+async function generateProfile(){
+  // Passer au loading
+  hide("screen-ob");
+  show("screen-ld");
+
+  var steps=qs("ld-steps").querySelectorAll(".ld-step");
+  var si=0;
+  var timer=setInterval(function(){
+    if(si>0) steps[si-1].className="ld-step done";
+    if(si<steps.length) steps[si].className="ld-step curr";
+    si++;
+    if(si>steps.length) clearInterval(timer);
+  },1600);
+
+  var prompt=
+    "Tu es Mirror, un systeme d'analyse psychologique avance. Analyse ce profil et genere un rapport JSON.\n\n"+
+    "PROFIL DE "+OB.name.toUpperCase()+":\n"+
+    "Domaine prioritaire: "+(OB.ans.domaine||"")+"\n"+
+    "Situation actuelle: "+(OB.ans.situation||"")+"\n"+
+    "Blocage principal: "+(OB.ans.blocage||"")+"\n"+
+    "Duree du pattern: "+(OB.ans.duree||"")+"\n"+
+    "Tentatives: "+(OB.ans.tentatives||"")+"\n"+
+    "Force principale: "+(OB.ans.force||"")+"\n"+
+    "Objectif 12 mois: "+(OB.ans.objectif||"")+"\n"+
+    "Readiness: "+(OB.ans.readiness||"")+"\n\n"+
+    "Reponds UNIQUEMENT avec ce JSON (sans markdown, sans backticks):\n"+
+    "{\"archetype\":\"Stratege|Batisseur|Creatif|Dominant Social|Analyste|Opportuniste\","+
+    "\"score\":entier_45_a_89_jamais_rond,"+
+    "\"score_label\":\"phrase courte\","+
+    "\"dims\":{\"Clarte\":0,\"Discipline\":0,\"Confiance\":0,\"Relations\":0,\"Impact\":0,\"Potentiel\":0},"+
+    "\"blocages\":[{\"t\":\"titre\",\"d\":\"1 phrase basee sur SES reponses\",\"s\":55,\"type\":\"2 mots\",\"detail\":\"2-3 phrases\",\"origine\":\"1-2 phrases\",\"action\":\"action concrete\"}],"+
+    "\"forces\":[{\"t\":\"titre\",\"d\":\"1 phrase\",\"detail\":\"pourquoi sous-utilisee\",\"activation\":\"comment activer\",\"lien\":\"lien archetype\"}],"+
+    "\"msg\":\"message commencant par prenom\","+
+    "\"msg_paras\":[\"para1\",\"para2\",\"para3\",\"para4\"],"+
+    "\"msg_citation\":\"citation finale\","+
+    "\"sim_bad\":\"trajectoire sans changement 1-2 phrases\","+
+    "\"sim_good\":\"trajectoire avec Mirror 1-2 phrases\","+
+    "\"defis_perso\":[\"defi1\",\"defi2\",\"defi3\"]}";
+
+  try {
+    var res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:2000,
+        messages:[{role:"user",content:prompt}]
+      })
+    });
+    var data=await res.json();
+    var txt=(data.content&&data.content[0]&&data.content[0].text)||"";
+    var ai=JSON.parse(txt.replace(/```json|```/g,"").trim());
+    P=buildProfile(ai);
+  } catch(e) {
+    P=buildFallback();
+  }
+
+  clearInterval(timer);
+  steps.forEach(function(s){ s.className="ld-step done" });
+
+  // Init chat
+  var arch=SD.archetypes[P.user.archetype]||{};
+  ST.cmsg=[{role:"ai",text:"Bonjour "+OB.name+". Je viens d'analyser ton profil en détail. Tu es "+(arch.symbol||"◈")+" "+P.user.archetype+" — et ce que tu m'as décrit sur "+((OB.ans.blocage||"ta situation").substring(0,40))+"... c'est exactement ce qu'on va travailler ensemble. Pose-moi n'importe quelle question."}];
+
+  setTimeout(function(){
+    hide("screen-ld");
+    show("screen-app");
+    // Mettre à jour header
+    qs("hdr-info").textContent=OB.name+" · "+P.user.archetype+" · J+"+ST.day;
+    qs("hdr-av").textContent=OB.name.charAt(0).toUpperCase();
+    qs("chat-av").textContent=P.user.archetype_symbol||"◈";
+    // Partage modal
+    qs("share-ic").textContent=P.user.archetype_symbol||"◈";
+    qs("share-score").innerHTML=P.user.score+'<span style="font-size:13px;color:var(--text3)">/100</span>';
+    qs("share-arch").textContent=P.user.archetype;
+    goTab("rapport");
+  },600);
+}
+
+function buildProfile(ai){
+  var arch=SD.archetypes[ai.archetype]||SD.archetypes["Stratège"]||{};
+  var score=ai.score||67;
+  var chs=JSON.parse(JSON.stringify(SD.challenges));
+  // Personnaliser 3 défis avec les défis IA
+  if(ai.defis_perso){ ai.defis_perso.forEach(function(d,i){ if(chs[i+3]) chs[i+3].d=d; }); }
+  return {
+    user:{
+      name:OB.name,
+      archetype:ai.archetype||"Stratège",
+      archetype_symbol:arch.symbol||"◈",
+      archetype_color:arch.color||"#c9a96e",
+      score:score,
+      score_label:ai.score_label||"Potentiel activé partiellement",
+      day:ST.day,streak:ST.streak,
+      dims:ai.dims||SD.fallback_user.dims
+    },
+    blocages:(ai.blocages&&ai.blocages.length)?ai.blocages:SD.fallback_blocages,
+    forces:(ai.forces&&ai.forces.length)?ai.forces:SD.fallback_forces,
+    msg:ai.msg||SD.fallback_msg,
+    msg_paras:(ai.msg_paras&&ai.msg_paras.length)?ai.msg_paras:SD.fallback_paras,
+    msg_citation:ai.msg_citation||SD.fallback_citation,
+    sim:{
+      bad:{score:Math.max(40,score-8),revenu:"~42K€/an",desc:ai.sim_bad||SD.sim_months_bad[0].d,months:SD.sim_months_bad},
+      good:{score:Math.min(95,score+18),revenu:"~67K€/an",desc:ai.sim_good||SD.sim_months_good[0].d,months:SD.sim_months_good}
+    },
+    challenges:chs,
+    plans:SD.plans,
+    articles:SD.articles,
+    archetypes:SD.archetypes,
+    defis_perso:ai.defis_perso||[]
+  };
+}
+
+function buildFallback(){
+  var arch=SD.archetypes["Stratège"]||{};
+  return {
+    user:{name:OB.name||"Toi",archetype:"Stratège",archetype_symbol:arch.symbol||"◈",archetype_color:arch.color||"#c9a96e",score:67,score_label:"Potentiel activé partiellement",day:ST.day,streak:ST.streak,dims:SD.fallback_user.dims},
+    blocages:SD.fallback_blocages,
+    forces:SD.fallback_forces,
+    msg:SD.fallback_msg,
+    msg_paras:SD.fallback_paras,
+    msg_citation:SD.fallback_citation,
+    sim:{bad:{score:59,revenu:"~42K€/an",desc:"Stagnation intelligente. Tu vois les opportunités mais tu ne les saisis pas.",months:SD.sim_months_bad},good:{score:85,revenu:"~67K€/an",desc:"Le Stratège activé. Projets lancés, confiance reconstruite, résultats mesurables.",months:SD.sim_months_good}},
+    challenges:JSON.parse(JSON.stringify(SD.challenges)),
+    plans:SD.plans,
+    articles:SD.articles,
+    archetypes:SD.archetypes,
+    defis_perso:[]
+  };
+}
+
+// ══════════════════════════════════════════════════════════
+// NAVIGATION TABS
+// ══════════════════════════════════════════════════════════
+function goTab(name){
+  ST.tab=name;
+  document.querySelectorAll(".tab,#tab-chat").forEach(function(e){ e.classList.remove("active") });
+  document.querySelectorAll(".nav-btn").forEach(function(e){ e.classList.remove("active") });
+  var tab=qs("tab-"+name); if(tab) tab.classList.add("active");
+  var navMap=["rapport","progres","defis","biblio","plans","chat"];
+  var btns=document.querySelectorAll(".nav-btn");
+  var idx=navMap.indexOf(name);
+  if(idx>=0&&btns[idx]) btns[idx].classList.add("active");
+  render(name);
+}
+
+function render(n){
+  if(!P) return;
+  if(n==="rapport") rRapport();
+  else if(n==="progres") rProgres();
+  else if(n==="defis") rDefis();
+  else if(n==="biblio") rBiblio();
+  else if(n==="plans") rPlans();
+  else if(n==="chat") rChat();
+}
+
+// ══════════════════════════════════════════════════════════
+// COMPOSANTS PARTAGÉS
+// ══════════════════════════════════════════════════════════
+function mkRing(score,col){
+  var r=34,c=2*Math.PI*r,id="r"+Date.now();
+  col=col||"var(--gold)";
+  var w=dv("ring-wrap");
+  ih(w,'<svg width="88" height="88" viewBox="0 0 88 88">'+
+    '<circle cx="44" cy="44" r="34" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="5"/>'+
+    '<circle id="'+id+'" cx="44" cy="44" r="34" fill="none" stroke="'+col+'" stroke-width="5"'+
+    ' stroke-dasharray="'+c.toFixed(1)+'" stroke-dashoffset="'+c.toFixed(1)+'"'+
+    ' stroke-linecap="round" transform="rotate(-90 44 44)"/></svg>');
+  var rc=dv("ring-center");
+  ih(rc,'<div class="ring-score" id="'+id+'-n">0</div><div class="ring-lbl">ÉVEIL</div>');
+  w.appendChild(rc);
+  setTimeout(function(){
+    var arc=qs(id),num=qs(id+"-n"); if(!arc||!num) return;
+    var t0=null,dur=1300;
+    function step(ts){ if(!t0) t0=ts; var p=Math.min((ts-t0)/dur,1),e=1-Math.pow(1-p,3);
+      arc.style.strokeDashoffset=(c-e*(score/100)*c).toFixed(2);
+      num.textContent=Math.round(e*score);
+      if(p<1) requestAnimationFrame(step); }
+    requestAnimationFrame(step);
+  },120);
+  return w;
+}
+
+function mkPb(pct,col){
+  var b=dv("pbar"),f=dv("pbar-f"); f.style.width=pct+"%"; if(col) f.style.background=col; b.appendChild(f); return b;
+}
+
+function mkRadar(dims){
+  var keys=Object.keys(dims),vals=Object.values(dims),sz=180,cx=sz/2,cy=sz/2,r=sz/2-28,n=keys.length;
+  var ang=function(i){ return Math.PI*2*i/n-Math.PI/2 };
+  var pt=function(i,rad){ return{x:cx+rad*Math.cos(ang(i)),y:cy+rad*Math.sin(ang(i))} };
+  var dpts=vals.map(function(v,i){ return pt(i,(v/100)*r) });
+  var dp=dpts.map(function(p,i){ return(i===0?"M":"L")+p.x.toFixed(1)+","+p.y.toFixed(1) }).join(" ")+" Z";
+  var out=['<svg class="radar-wrap" width="180" height="180" viewBox="0 0 180 180">'];
+  [.25,.5,.75,1].forEach(function(l){
+    var gp=keys.map(function(_,i){ return pt(i,r*l) });
+    out.push('<path d="'+gp.map(function(p,i){ return(i===0?"M":"L")+p.x.toFixed(1)+","+p.y.toFixed(1) }).join(" ")+" Z"+'" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="1"/>');
+  });
+  keys.forEach(function(_,i){ var e=pt(i,r); out.push('<line x1="'+cx+'" y1="'+cy+'" x2="'+e.x.toFixed(1)+'" y2="'+e.y.toFixed(1)+'" stroke="rgba(255,255,255,.06)" stroke-width="1"/>') });
+  out.push('<path d="'+dp+'" fill="rgba(201,169,110,.1)" stroke="#c9a96e" stroke-width="1.5"/>');
+  dpts.forEach(function(p){ out.push('<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="3" fill="#c9a96e"/>') });
+  keys.forEach(function(k,i){
+    var lp=pt(i,r+18),v=vals[i],col=v>=70?"#3dba7e":v>=50?"#c9a96e":"#e05555";
+    out.push('<text x="'+lp.x.toFixed(1)+'" y="'+(lp.y-3).toFixed(1)+'" text-anchor="middle" style="font-size:8px;fill:rgba(255,255,255,.35);font-family:Plus Jakarta Sans">'+k+'</text>');
+    out.push('<text x="'+lp.x.toFixed(1)+'" y="'+(lp.y+8).toFixed(1)+'" text-anchor="middle" style="font-size:10px;fill:'+col+';font-family:Plus Jakarta Sans;font-weight:600">'+v+'</text>');
+  });
+  out.push("</svg>");
+  var w=dv(""); ih(w,out.join("")); return w.firstChild;
+}
+
+function tagCol(tag){
+  return tag==="Neurosciences"?{c:"#4a9eda",b:"rgba(74,158,218,.1)"}:
+    (tag==="Prépa mentale"||tag==="Prepa mentale")?{c:"var(--ok)",b:"rgba(61,186,126,.1)"}:
+    {c:"var(--gold)",b:"var(--gold2)"};
+}
+
+// ══════════════════════════════════════════════════════════
+// MODAUX DÉTAIL
+// ══════════════════════════════════════════════════════════
+function detBlocage(i){
+  var b=P.blocages[i]; if(!b) return;
+  var col=b.s>=80?"var(--err)":b.s>=70?"#EF9F27":"var(--gold)";
+  openModal(
+    '<div style="height:2px;background:linear-gradient(90deg,transparent,'+col+',transparent)"></div>'+
+    '<div class="modal-inner">'+
+    '<span class="m-tag" style="background:rgba(224,85,85,.1);color:var(--err)">BLOCAGE DUR &middot; '+b.s+'%</span>'+
+    '<div class="m-ti">'+b.t+'</div>'+
+    '<div class="m-su">'+b.d+'</div>'+
+    '<div class="m-bar"><div class="m-bar-f" style="width:'+b.s+'%;background:linear-gradient(90deg,rgba(201,169,110,.5),'+col+')"></div></div>'+
+    '<div class="m-sl" style="color:var(--gold)">Analyse approfondie</div>'+
+    '<div class="m-st">'+b.detail+'</div>'+
+    '<div class="m-sl" style="color:var(--gold)">Origine</div>'+
+    '<div class="m-insight">'+b.origine+'</div>'+
+    '<div class="m-sl" style="color:var(--ok)">Action concrète</div>'+
+    '<div class="m-action">'+b.action+'</div>'+
+    '</div>'
+  );
+}
+
+function detForce(i){
+  var f=P.forces[i]; if(!f) return;
+  openModal(
+    '<div style="height:2px;background:linear-gradient(90deg,transparent,var(--ok),transparent)"></div>'+
+    '<div class="modal-inner">'+
+    '<span class="m-tag" style="background:rgba(61,186,126,.1);color:var(--ok)">FORCE CACHÉE</span>'+
+    '<div class="m-ti">'+f.t+'</div>'+
+    '<div class="m-su">'+f.d+'</div>'+
+    '<div class="m-sl" style="color:var(--ok)">Pourquoi elle est sous-utilisée</div>'+
+    '<div class="m-st">'+f.detail+'</div>'+
+    '<div class="m-sl" style="color:var(--gold)">Comment l\'activer maintenant</div>'+
+    '<div class="m-insight">'+f.activation+'</div>'+
+    '<div class="m-sl" style="color:var(--text3)">Lien avec ton archétype</div>'+
+    '<div class="m-st" style="font-style:italic;color:var(--text3)">'+f.lien+'</div>'+
+    '</div>'
+  );
+}
+
+function detMessage(){
+  var h='<div style="height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent)"></div>'+
+    '<div class="modal-inner">'+
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'+
+      '<div style="width:38px;height:38px;border-radius:50%;background:var(--gold2);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--gold)">'+P.user.archetype_symbol+'</div>'+
+      '<div><div style="font-size:10px;color:var(--text3);letter-spacing:.8px;text-transform:uppercase">Message final</div>'+
+      '<div style="font-size:14px;font-weight:600;color:var(--gold)">'+P.user.name+' &middot; '+P.user.archetype+'</div></div>'+
+    '</div>'+
+    '<div style="padding:14px;background:rgba(201,169,110,.05);border:1px solid rgba(201,169,110,.2);border-radius:10px;margin-bottom:16px">'+
+      '<div style="font-size:15px;line-height:1.75;color:var(--text);font-style:italic;font-weight:300">&laquo; '+P.msg+' &raquo;</div>'+
+    '</div>';
+  P.msg_paras.forEach(function(p){ h+='<div class="m-st">'+p+'</div>' });
+  h+='<div style="padding:14px;background:var(--gold3);border-left:3px solid var(--gold);border-radius:0 10px 10px 0;font-size:14px;color:var(--gold);line-height:1.7;font-style:italic">&laquo; '+P.msg_citation+' &raquo;</div></div>';
+  openModal(h);
+}
+
+function detSim(type){
+  var s=P.sim[type],bad=type==="bad",col=bad?"var(--err)":"var(--ok)",bgc=bad?"rgba(224,85,85,.06)":"rgba(61,186,126,.06)",brc=bad?"rgba(224,85,85,.15)":"rgba(61,186,126,.15)";
+  var h='<div style="height:2px;background:linear-gradient(90deg,transparent,'+col+',transparent)"></div>'+
+    '<div class="modal-inner">'+
+    '<span class="m-tag" style="background:'+bgc+';color:'+col+'">'+(bad?"TRAJECTOIRE ACTUELLE":"TRAJECTOIRE MIRROR")+'</span>'+
+    '<div class="m-ti" style="color:'+col+'">'+(bad?"Si rien ne change":"Avec le plan Mirror")+' — 12 mois</div>'+
+    '<div class="m-stats">'+
+      '<div class="m-stat" style="background:'+bgc+';border:1px solid '+brc+'"><div class="m-stat-v" style="color:'+col+'">'+s.score+'</div><div class="m-stat-l">Score prévu</div></div>'+
+      '<div class="m-stat" style="background:'+bgc+';border:1px solid '+brc+'"><div class="m-stat-v" style="color:'+col+'">'+s.revenu+'</div><div class="m-stat-l">Revenus/an</div></div>'+
+    '</div>'+
+    '<div class="m-sl" style="color:'+col+'">Trajectoire mois par mois</div>';
+  s.months.forEach(function(mo){
+    h+='<div class="m-month'+(bad?"":" gd")+'"><div class="m-month-lbl" style="color:'+col+'">'+mo.m+' — '+mo.t+'</div><div class="m-month-tx">'+mo.d+'</div></div>';
+  });
+  h+='</div>';
+  openModal(h);
+}
+
+function detPlan(id){
+  var p=P.plans.find(function(x){ return x.id===id }); if(!p) return;
+  var h='<div style="height:2px;background:linear-gradient(90deg,transparent,'+p.tagFg+',transparent)"></div>'+
+    '<div class="modal-inner">'+
+    '<span class="m-tag" style="background:'+p.tagBg+';color:'+p.tagFg+'">'+p.tag+'</span>'+
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">'+
+      '<div style="font-size:18px;font-weight:700">'+p.name+'</div>'+
+      '<div style="font-size:20px;font-weight:700;color:'+p.tagFg+'">'+p.price+'</div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text3);margin-bottom:14px">'+p.sub+' &middot; '+p.period+'</div>'+
+    '<div class="plan-trial">&#127873; '+p.trial+'</div>'+
+    '<div class="m-sl" style="color:'+p.tagFg+'">Pour qui ?</div><div class="m-st">'+p.pour+'</div>'+
+    '<div class="m-sl" style="color:var(--gold)">Ce que tu reçois vraiment</div><div class="m-st">'+p.inclut+'</div>'+
+    '<div class="m-sl" style="color:var(--ok)">Garantie</div><div class="m-st">'+p.garanti+'</div>'+
+    '<div class="m-sl" style="color:var(--text3)">Inclus dans cette formule</div>';
+  p.feats.forEach(function(f){ h+='<div class="plan-feat"><span style="color:'+p.tagFg+';flex-shrink:0">&rarr;</span>'+f+'</div>' });
+  h+='</div>';
+  openModal(h);
+}
+
+function openArticle(idx){
+  var a=P.articles[idx]; if(!a) return;
+  var tc=tagCol(a.tag);
+  var h='<div style="height:3px;background:linear-gradient(90deg,transparent,'+tc.c+',transparent)"></div>'+
+    '<div class="modal-inner">'+
+    '<div style="display:flex;gap:6px;align-items:center;margin-bottom:12px">'+
+      '<span class="m-tag" style="background:'+tc.b+';color:'+tc.c+'">'+a.tag+'</span>'+
+      '<span style="font-size:10px;color:var(--text3)">'+a.read+'</span>'+
+      '<span style="font-size:10px;color:var(--text3);margin-left:auto">'+a.date+'</span>'+
+    '</div>'+
+    '<div style="font-size:17px;font-weight:700;line-height:1.25;margin-bottom:14px">'+a.title+'</div>'+
+    '<div style="font-size:14px;color:var(--text);line-height:1.75;font-weight:500;margin-bottom:14px">'+a.exc+'</div>';
+  a.content.forEach(function(b){
+    if(b.h) h+='<div class="m-sl" style="color:var(--gold)">'+b.h+'</div>';
+    if(b.p) h+='<div class="m-st">'+b.p+'</div>';
+    if(b.insight) h+='<div class="m-insight">'+b.insight+'</div>';
+  });
+  h+='</div>';
+  ih(qs("modal-art-inner"),h);
+  qs("modal-art").classList.add("open");
+}
+
+// ══════════════════════════════════════════════════════════
+// RAPPORT
+// ══════════════════════════════════════════════════════════
+function rRapport(){
+  var sc=cl(qs("tab-rapport"));
+  var done=P.challenges.filter(function(c){ return c.done }).length+Object.keys(ST.ddon).length;
+  var col=P.user.archetype_color||"var(--gold)";
+
+  // Carte archétype
+  var archD=P.archetypes[P.user.archetype]||{};
+  var ac=dv("card gold");
+  var aline=dv("",`height:2px;background:linear-gradient(90deg,transparent,${col},transparent)`); ac.appendChild(aline);
+  var apad=dv("",`padding:16px`);
+  var atop=dv("",`display:flex;align-items:center;justify-content:space-between;margin-bottom:10px`);
+  ih(atop,
+    `<div style="display:flex;align-items:center;gap:10px">
+      <div style="width:38px;height:38px;border-radius:50%;background:${P.user.archetype_color}22;border:1px solid ${col};display:flex;align-items:center;justify-content:center;font-size:17px;color:${col}">${P.user.archetype_symbol}</div>
+      <div>
+        <div style="font-size:10px;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:1px">Archétype dominant</div>
+        <div style="font-size:17px;font-weight:700;color:${col}">${P.user.archetype}</div>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:18px;font-weight:700">${P.user.score}</div>
+      <div style="font-size:9px;color:var(--text3)">Top 18%</div>
+    </div>`
+  );
+  apad.appendChild(atop);
+  if(archD.desc){ var ad=dv("",`font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:10px`); tx(ad,archD.desc); apad.appendChild(ad) }
+  var an=dv("",`padding:9px 11px;background:var(--gold3);border:1px solid rgba(201,169,110,.15);border-radius:var(--r);font-size:11px;color:var(--text2);line-height:1.5`);
+  ih(an,`<span style="color:var(--gold);font-weight:600">&rarr; </span>${P.user.score_label}`);
+  apad.appendChild(an); ac.appendChild(apad); sc.appendChild(ac);
+
+  // Hero score
+  var hc=dv("card gold"); var hp=dv("",`padding:16px;display:flex;gap:14px;align-items:center`);
+  hp.appendChild(mkRing(P.user.score,col));
+  var hr=dv("",`flex:1;min-width:0`);
+  ih(hr,`<div style="font-size:10px;color:var(--gold);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Score d'éveil</div>
+    <div style="font-size:22px;font-weight:600;letter-spacing:-.5px;line-height:1">Mirror <span style="color:${col}">${P.user.archetype_symbol}</span></div>
+    <div style="font-size:13px;color:var(--text2);margin-top:4px">${P.user.archetype} &middot; Top 18%</div>`);
+  var hm=dv("",`display:flex;gap:8px;margin-top:10px;align-items:center`);
+  ih(hm,`<div style="font-size:12px;color:var(--text2)">&#x1F525; <span style="color:var(--text)">${ST.streak}j</span></div><div style="font-size:12px;color:var(--text2)">J+<span style="color:var(--text)">${ST.day}</span></div>`);
+  var sBtn=bt("",`Partager →`,function(){ qs("modal-share").classList.add("open") });
+  sBtn.style.cssText=`margin-left:auto;font-size:11px;padding:5px 12px;background:var(--gold2);border:1px solid rgba(201,169,110,.3);color:var(--gold);border-radius:99px`;
+  hm.appendChild(sBtn); hr.appendChild(hm); hp.appendChild(hr); hc.appendChild(hp);
+  var pp=dv("",`padding:0 16px 14px`);
+  var pl=dv("",`display:flex;justify-content:space-between;margin-bottom:5px;font-size:11px;color:var(--text3)`);
+  ih(pl,`<span>Plan 15 jours</span><span style="color:var(--gold)">${done}/15 défis</span>`);
+  pp.appendChild(pl); pp.appendChild(mkPb(Math.round(done/15*100))); hc.appendChild(pp); sc.appendChild(hc);
+
+  // Révélations
+  var secs=[{k:"blocages",lb:"Tes 3 blocages"},{k:"forces",lb:"Forces cachées"},{k:"sim",lb:"Simulation 12 mois"},{k:"msg",lb:"Message final"}];
+  secs.forEach(function(sec,i){
+    if(ST.rev>i){ sc.appendChild(buildReveal(sec.k)) }
+    else {
+      var rb=bt("rb","",function(){ ST.rev=i+1; rRapport() });
+      ih(rb,`<span style="color:var(--gold);font-size:12px">&#9672;</span><span>Révéler&nbsp;: <span style="color:var(--text2)">${sec.lb}</span></span><span style="color:var(--gold);margin-left:auto">&rarr;</span>`);
+      sc.appendChild(rb);
+    }
+  });
+  if(ST.rev>=4){
+    var pb=bt("",`Voir mes programmes →`,function(){ goTab("plans") });
+    pb.style.cssText=`width:100%;padding:14px;background:var(--gold);border-radius:var(--r2);color:#000;font-size:13px;font-weight:600;letter-spacing:.3px;margin-bottom:10px`;
+    sc.appendChild(pb);
+  }
+}
+
+function buildReveal(k){
+  var c=dv("card");
+  var col=P.user.archetype_color||"var(--gold)";
+
+  if(k==="blocages"){
+    var lbl=dv("sl"); lbl.style.color="var(--text3)"; tx(lbl,"Blocages DUR"); c.appendChild(lbl);
+    P.blocages.forEach(function(b,i){
+      c.appendChild(dv("dvd"));
+      var row=dv("row-btn"); row.style.flexDirection="column";
+      row.onclick=(function(idx){ return function(){ detBlocage(idx) } })(i);
+      var top=dv("",`display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;width:100%`);
+      var t=dv("",`font-size:14px;font-weight:500;flex:1;line-height:1.3`); tx(t,b.t);
+      var mt=dv("",`display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:8px`);
+      ih(mt,`<span style="font-size:12px;color:var(--err);font-weight:600">${b.s}%</span><span style="font-size:10px;color:var(--text3)">&rarr;</span>`);
+      top.appendChild(t); top.appendChild(mt); row.appendChild(top);
+      var d=dv("",`font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:4px;width:100%`); tx(d,b.d); row.appendChild(d);
+      var dl=dv("",`font-size:10px;color:var(--text3);margin-top:4px;display:flex;gap:6px`);
+      ih(dl,`<span style="color:var(--err)">DUR</span><span>${b.type}</span>`); row.appendChild(dl);
+      var br=dv("",`height:2px;background:rgba(255,255,255,.05);border-radius:1px;margin-top:8px;overflow:hidden;width:100%`);
+      var bf=dv("",`height:100%;width:${b.s}%;background:linear-gradient(90deg,rgba(201,169,110,.5),var(--err));border-radius:1px`);
+      br.appendChild(bf); row.appendChild(br); c.appendChild(row);
+    });
+  }
+  else if(k==="forces"){
+    var lbl2=dv("sl"); lbl2.style.color="var(--text3)"; tx(lbl2,"Forces cachées"); c.appendChild(lbl2);
+    P.forces.forEach(function(f,i){
+      c.appendChild(dv("dvd"));
+      var row=dv("row-btn");
+      row.onclick=(function(idx){ return function(){ detForce(idx) } })(i);
+      var ic=dv("",`color:var(--ok);flex-shrink:0;margin-top:1px`); ic.textContent="◈";
+      var inf=dv("",`flex:1`);
+      var t=dv("",`font-size:13px;font-weight:500;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center`);
+      ih(t,f.t+`<span style="font-size:10px;color:var(--text3)">&rarr;</span>`);
+      var d=dv("",`font-size:12px;color:var(--text2);line-height:1.6`); tx(d,f.d);
+      inf.appendChild(t); inf.appendChild(d); row.appendChild(ic); row.appendChild(inf); c.appendChild(row);
+    });
+  }
+  else if(k==="sim"){
+    var lbl3=dv("sl"); lbl3.style.color="var(--text3)"; tx(lbl3,"Simulation 12 mois"); c.appendChild(lbl3);
+    var sp=dv("",`padding:8px 12px 12px;display:grid;gap:8px`);
+    var bad=dv("sim-box bad"); bad.onclick=function(){ detSim("bad") };
+    ih(bad,`<div style="font-size:10px;font-weight:600;letter-spacing:.8px;color:var(--err);margin-bottom:5px">SI RIEN NE CHANGE <span style="float:right;font-size:10px;opacity:.6">Détail &rarr;</span></div><div style="font-size:12px;color:var(--text2);line-height:1.6">${P.sim.bad.desc}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px"><span style="color:var(--err)">Score : ${P.sim.bad.score}/100</span><span style="color:var(--err)">${P.sim.bad.revenu}</span></div>`);
+    var good=dv("sim-box good"); good.onclick=function(){ detSim("good") };
+    ih(good,`<div style="font-size:10px;font-weight:600;letter-spacing:.8px;color:var(--ok);margin-bottom:5px">AVEC LE PLAN MIRROR <span style="float:right;font-size:10px;opacity:.6">Détail &rarr;</span></div><div style="font-size:12px;color:var(--text2);line-height:1.6">${P.sim.good.desc}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px"><span style="color:var(--ok)">Score : ${P.sim.good.score}/100</span><span style="color:var(--ok)">${P.sim.good.revenu}</span></div>`);
+    sp.appendChild(bad); sp.appendChild(good); c.appendChild(sp);
+  }
+  else if(k==="msg"){
+    var tl=dv("",`height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)`); c.appendChild(tl);
+    var mp=dv("",`padding:16px;cursor:pointer;transition:background .2s`);
+    mp.onmouseenter=function(){ this.style.background="rgba(201,169,110,.02)" };
+    mp.onmouseleave=function(){ this.style.background="" };
+    mp.onclick=detMessage;
+    var ml=dv("",`font-size:11px;color:var(--gold);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center`);
+    ih(ml,`Message final <span style="font-size:10px;color:var(--text3)">Lire en entier &rarr;</span>`);
+    var mt=dv("",`font-size:15px;line-height:1.7;font-style:italic;font-weight:300`); tx(mt,"« "+P.msg+" »");
+    var mm=dv("",`margin-top:10px;font-size:11px;color:var(--gold);opacity:.7`); tx(mm,"Appuie pour lire le message complet");
+    mp.appendChild(ml); mp.appendChild(mt); mp.appendChild(mm); c.appendChild(mp);
+  }
+  return c;
+}
+
+// ══════════════════════════════════════════════════════════
+// PROGRÈS (DASHBOARD)
+// ══════════════════════════════════════════════════════════
+function rProgres(){
+  var sc=cl(qs("tab-progres"));
+  var done=P.challenges.filter(function(c){ return c.done }).length+Object.keys(ST.ddon).length;
+  var xp=done*85;
+
+  // Stats
+  var sr=dv("",`display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px`);
+  [{v:P.user.score,l:"Éveil",c:"var(--gold)",s:"/100"},{v:ST.streak+"🔥",l:"Streak",c:"var(--err)",s:""},{v:xp,l:"XP",c:"var(--ok)",s:""}].forEach(function(s){
+    var ca=dv("card"),p=dv("",`padding:12px 10px;text-align:center`);
+    ih(p,`<div style="font-size:22px;font-weight:600;color:${s.c};line-height:1">${s.v}<span style="font-size:11px;color:var(--text3)">${s.s}</span></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${s.l}</div>`);
+    ca.appendChild(p); sr.appendChild(ca);
+  });
+  sc.appendChild(sr);
+
+  // Progression
+  var pg=dv("card"); var pp=dv("cp");
+  var pl=dv("",`display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px`);
+  ih(pl,`<span style="font-weight:500">Plan 15 jours</span><span style="color:var(--gold)">${done}/15</span>`);
+  pp.appendChild(pl); pp.appendChild(mkPb(Math.round(done/15*100)));
+  var pn=dv("",`font-size:11px;color:var(--text3);margin-top:6px`);
+  ih(pn,`<span style="color:var(--gold)">${15-done} défis</span> à débloquer`);
+  pp.appendChild(pn); pg.appendChild(pp); sc.appendChild(pg);
+
+  // Insight
+  var ins=dv("card gold"); var ip=dv("cp");
+  ih(ip,`<div style="font-size:10px;color:var(--gold);letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px">Insight J+${ST.day}</div><div style="font-size:13px;font-weight:500;margin-bottom:5px;line-height:1.3">Le biais de confirmation du ${P.user.archetype}</div><div style="font-size:12px;color:var(--text2);line-height:1.65">Ton cerveau cherche les preuves que tu n'es pas prêt. La préparation parfaite est le meilleur ami de la procrastination.</div>`);
+  ins.appendChild(ip); sc.appendChild(ins);
+
+  // Radar
+  var rc=dv("card");
+  var rl=dv("",`padding:12px 16px 6px;font-size:11px;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;text-align:center`); tx(rl,"6 dimensions"); rc.appendChild(rl);
+  rc.appendChild(mkRadar(P.user.dims));
+  var dg=dv("dims-grid");
+  Object.keys(P.user.dims).forEach(function(k){
+    var v=P.user.dims[k], col=v>=70?"var(--ok)":v>=50?"var(--gold)":"var(--err)";
+    var row=dv("dim-row");
+    ih(row,`<span style="font-size:11px;color:var(--text2)">${k}</span><div style="display:flex;align-items:center;gap:7px"><div class="dim-bar"><div style="height:100%;width:${v}%;background:${col};border-radius:1px"></div></div><span style="font-size:11px;font-weight:600;min-width:20px;text-align:right;color:${col}">${v}</span></div>`);
+    dg.appendChild(row);
+  });
+  rc.appendChild(dg); sc.appendChild(rc);
+
+  // Badges
+  var bc=dv("card");
+  var bl=dv("sl"); bl.style.color="var(--text3)"; tx(bl,"Badges"); bc.appendChild(bl); bc.appendChild(dv("dvd"));
+  var bg=dv("badges-grid");
+  [{s:P.user.archetype_symbol,n:"Archétype",ok:true},{s:"🔥",n:"J+"+ST.streak,ok:ST.streak>=3},{s:"◇",n:"1er défi",ok:done>=1},{s:"◎",n:"Mi-parcours",ok:done>=8},{s:"▷",n:"Score 75+",ok:P.user.score>=75},{s:"△",n:"15 défis",ok:done>=15},{s:"◉",n:"Coach actif",ok:ST.cmsg.length>3},{s:"★",n:"Fondateur",ok:true}].forEach(function(b){
+    var bi=dv("badge"+(b.ok?" ok":""));
+    ih(bi,`<div class="badge-ic">${b.s}</div><div class="badge-nm">${b.n}</div>`);
+    bg.appendChild(bi);
+  });
+  bc.appendChild(bg); sc.appendChild(bc);
+
+  // Projection
+  var pj=dv("card gold"); var pjp=dv("cp");
+  ih(pjp,`<div style="font-size:10px;color:var(--gold);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px">Projection J+30</div><div style="font-size:13px;line-height:1.65;margin-bottom:10px">À ce rythme, score <span style="color:var(--gold);font-weight:600">${Math.min(95,P.user.score+12)}/100</span> — top <span style="color:var(--gold);font-weight:600">8%</span> des ${P.user.archetype}s.</div>`);
+  var pr=dv("",`display:flex;align-items:center;gap:8px`); var pb3=mkPb(P.user.score); pb3.style.flex="1"; pr.appendChild(pb3);
+  var ps=dv("",`font-size:11px;color:var(--gold);font-weight:600`); tx(ps,P.user.score+" → "+Math.min(95,P.user.score+12)); pr.appendChild(ps);
+  pjp.appendChild(pr); pj.appendChild(pjp); sc.appendChild(pj);
+}
+
+// ══════════════════════════════════════════════════════════
+// DÉFIS
+// ══════════════════════════════════════════════════════════
+function rDefis(){
+  var sc=cl(qs("tab-defis"));
+  var done=P.challenges.filter(function(c){ return c.done }).length+Object.keys(ST.ddon).length;
+
+  var hh=dv("",`margin-bottom:10px`);
+  var ht=dv("",`display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px`);
+  ih(ht,`<div style="font-weight:600;font-size:17px">Plan 15 jours</div><div style="font-size:12px;color:var(--gold)">${done}/15 · ${Math.round(done/15*100)}%</div>`);
+  hh.appendChild(ht); hh.appendChild(mkPb(Math.round(done/15*100))); sc.appendChild(hh);
+
+  var fr=dv("filter-row");
+  [["all","Tous"],["todo","À faire"],["done","Faits"]].forEach(function(f){
+    var b=bt("fb"+(ST.dfil===f[0]?" active":""),f[1],function(){ ST.dfil=f[0]; rDefis() });
+    fr.appendChild(b);
+  });
+  sc.appendChild(fr);
+
+  // Badge défis perso
+  if(P.defis_perso&&P.defis_perso.length>0){
+    var hint=dv("",`padding:10px 12px;background:var(--gold3);border:1px solid rgba(201,169,110,.2);border-radius:var(--r);margin-bottom:10px;font-size:12px;color:var(--text2);line-height:1.5`);
+    ih(hint,`<span style="color:var(--gold);font-weight:600">◈ Défis personnalisés</span> — Générés par Mirror IA selon ton profil`);
+    sc.appendChild(hint);
+  }
+
+  P.challenges.forEach(function(ch,idx){
+    var isDone=ch.done||ST.ddon[ch.id];
+    var isToday=ch.today&&!isDone;
+    var isLocked=!isDone&&!isToday&&idx>done;
+    if(ST.dfil==="done"&&!isDone) return;
+    if(ST.dfil==="todo"&&isDone) return;
+
+    var lvlMap={"Rapide":"r","Standard":"s","Intense":"i"};
+    var dc=dv("defi-card"+(isToday?" today":"")+(isDone?" done":""));
+    dc.style.opacity=isLocked?"0.3":"1";
+
+    var dh=dv("defi-head"); dh.style.cursor=isLocked?"default":"pointer";
+    var dm=dv("defi-meta");
+    ih(dm,`<span style="font-size:10px;color:var(--text3)">J${ch.day}</span>`);
+    var lp2=dv("pill "+(lvlMap[ch.lvl]||"s")); tx(lp2,ch.lvl); dm.appendChild(lp2);
+    ih(dm,dm.innerHTML+`<span style="font-size:10px;color:var(--text3)">${ch.dur}</span>`);
+    if(isToday){ var tp=dv("pill","background:var(--gold2);color:var(--gold)"); tx(tp,"Aujourd'hui"); dm.appendChild(tp) }
+    ih(dm,dm.innerHTML+`<span style="font-size:10px;color:var(--gold);margin-left:auto">+${ch.xp}xp</span>`);
+    dh.appendChild(dm);
+
+    var db=dv("defi-body"), inf=dv("",`flex:1`);
+    var dt=dv("defi-title"); dt.style.color=isDone?"var(--text2)":"var(--text)"; tx(dt,ch.t);
+    var dd=dv("defi-desc"); tx(dd,ch.d);
+    inf.appendChild(dt); inf.appendChild(dd); db.appendChild(inf);
+    var ck=dv("defi-chk"+(isDone?" done":"")); tx(ck,isDone?"✓":""); db.appendChild(ck);
+    dh.appendChild(db);
+    if(!isLocked) dh.onclick=(function(c){ return function(){ ST.adf=ST.adf===c.id?null:c.id; rDefis() } })(ch);
+    dc.appendChild(dh);
+
+    // Zone réponse
+    if(ST.adf===ch.id&&!isDone){
+      var dr=dv("defi-resp");
+      var note=dv("",`font-size:11px;color:var(--text3);margin-bottom:6px`); tx(note,"Ta réponse — le coach analysera et adaptera la suite");
+      var ta=ce("textarea"); ta.rows=3; ta.placeholder="Décris ce que tu as fait ou ce qui t'a bloqué..."; ta.value=ST.dtx[ch.id]||"";
+      ta.oninput=function(){ ST.dtx[ch.id]=ta.value };
+      var vb=bt("btn-valid",ST.dlod?"Analyse en cours...":"Valider le défi →",function(){ subDefi(ch) }); vb.disabled=ST.dlod;
+      dr.appendChild(note); dr.appendChild(ta); dr.appendChild(vb); dc.appendChild(dr);
+    }
+    if(ST.adf===ch.id&&isDone&&ST.drep[ch.id]){
+      var rep=ST.drep[ch.id];
+      var fb=dv("coach-fb");
+      var fbl=dv("cfb-lbl"); tx(fbl,"COACH MIRROR");
+      var fbt=dv("cfb-tx"); tx(fbt,rep.feedback);
+      fb.appendChild(fbl); fb.appendChild(fbt);
+      if(rep.defi_suivant){ var fn=dv("cfb-next"); ih(fn,`<div class="cfb-next-lbl">DEMAIN</div><div class="cfb-next-tx">${rep.defi_suivant}</div>`); fb.appendChild(fn) }
+      if(rep.insight){ var fi=dv("",`margin-top:8px;font-size:11px;color:var(--text3);font-style:italic;line-height:1.5`); tx(fi,rep.insight); fb.appendChild(fi) }
+      dc.appendChild(fb);
+    }
+    sc.appendChild(dc);
+  });
+
+  var lk=dv("",`padding:14px;background:var(--gold3);border:1px dashed rgba(201,169,110,.2);border-radius:var(--r2);text-align:center;margin-top:4px`);
+  ih(lk,`<div style="font-size:12px;color:var(--text3)">🔒 Programmes Essentiel, Pro et Premium après les 15 premiers jours</div>`);
+  sc.appendChild(lk);
+}
+
+async function subDefi(ch){
+  var text=ST.dtx[ch.id]; if(!text||!text.trim()) return;
+  ST.dlod=true; rDefis();
+  try {
+    var res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",max_tokens:400,
+        system:"Tu es coach Mirror. Parles a "+P.user.name+" ("+P.user.archetype+", score "+P.user.score+"). Feedback percutant 2-3 phrases base sur sa reponse. Reponds en JSON: {feedback, defi_suivant, insight}",
+        messages:[{role:"user",content:"Defi: "+ch.t+"\nReponse: "+text}]
+      })
+    });
+    var data=await res.json(); var txt=(data.content&&data.content[0]&&data.content[0].text)||"";
+    try{ ST.drep[ch.id]=JSON.parse(txt.replace(/```json|```/g,"").trim()) }
+    catch(e){ ST.drep[ch.id]={feedback:txt,defi_suivant:null,insight:null} }
+    ST.ddon[ch.id]=true;
+    ST.streak=Math.min(99,ST.streak+1);
+    ST.day=Math.min(15,ST.day+1);
+    qs("hdr-info").textContent=P.user.name+" · "+P.user.archetype+" · J+"+ST.day;
+    qs("streak-v").textContent=ST.streak+"j";
+  } catch(e){
+    ST.drep[ch.id]={feedback:"Coach temporairement indisponible. Mais tu as quand même fait le défi — c'est ce qui compte.",defi_suivant:null,insight:null};
+    ST.ddon[ch.id]=true;
+  }
+  ST.dlod=false; rDefis();
+}
+
+// ══════════════════════════════════════════════════════════
+// BIBLIO
+// ══════════════════════════════════════════════════════════
+function rBiblio(){
+  var sc=cl(qs("tab-biblio"));
+  var tr=dv("filter-row");
+  [["archetype","Mon archétype"],["articles","Articles"]].forEach(function(t){
+    var b=bt("fb"+(ST.btab===t[0]?" active":""),t[1],function(){ ST.btab=t[0]; rBiblio() }); tr.appendChild(b);
+  });
+  sc.appendChild(tr);
+  if(ST.btab==="archetype") rBiblioArch(sc);
+  else rBiblioArt(sc);
+}
+
+function rBiblioArch(sc){
+  var nm=ST.selArch||P.user.archetype, arch=P.archetypes[nm]||{};
+  var col=arch.color||"var(--gold)";
+
+  var hc=dv("card gold");
+  var ln=dv("",`height:2px;background:linear-gradient(90deg,transparent,${col},transparent)`); hc.appendChild(ln);
+  var hp=dv("",`padding:18px`);
+  var ht=dv("",`display:flex;align-items:center;gap:14px;margin-bottom:12px`);
+  var ci=dv("",`width:52px;height:52px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;border:1px solid ${col};color:${col}`); tx(ci,arch.symbol||"◈");
+  ht.appendChild(ci);
+  var hi=dv(""); ih(hi,`<div style="font-size:10px;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:2px">${nm===P.user.archetype?"Ton archétype":"Archétype"}</div><div style="font-size:20px;font-weight:700">${nm}</div>`); ht.appendChild(hi); hp.appendChild(ht);
+  var tl=dv("",`font-size:13px;font-style:italic;line-height:1.5;margin-bottom:10px;color:${col}`); tx(tl,"« "+(arch.tagline||"")+" »"); hp.appendChild(tl);
+  var ds=dv("",`font-size:12px;color:var(--text2);line-height:1.7`); tx(ds,arch.desc||""); hp.appendChild(ds);
+  hc.appendChild(hp); sc.appendChild(hc);
+
+  // Forces
+  var fc=dv("card"); var fl=dv("sl"); fl.style.color="var(--ok)"; tx(fl,"Forces"); fc.appendChild(fl);
+  (arch.forces||[]).forEach(function(f){ fc.appendChild(dv("dvd")); var r=dv("",`padding:9px 16px;display:flex;gap:9px;align-items:flex-start`); ih(r,`<span style="color:var(--ok);flex-shrink:0;font-size:11px;margin-top:2px">◈</span><div style="font-size:12px;color:var(--text);line-height:1.55">${f}</div>`); fc.appendChild(r) });
+  sc.appendChild(fc);
+
+  // Pièges
+  var pc=dv("card"); var pl2=dv("sl"); pl2.style.color="var(--err)"; tx(pl2,"Pièges inconscients"); pc.appendChild(pl2);
+  (arch.pieges||[]).forEach(function(p){ pc.appendChild(dv("dvd")); var r=dv("",`padding:9px 16px;display:flex;gap:9px;align-items:flex-start`); ih(r,`<span style="color:var(--err);flex-shrink:0;font-size:11px;margin-top:2px">✕</span><div style="font-size:12px;color:var(--text2);line-height:1.55">${p}</div>`); pc.appendChild(r) });
+  sc.appendChild(pc);
+
+  // Exemples
+  var ec=dv("card"); var el2=dv("sl"); el2.style.color="var(--text3)"; tx(el2,"Personnalités du même archétype"); ec.appendChild(el2);
+  var er=dv("",`padding:0 16px 12px;display:flex;gap:7px;flex-wrap:wrap`);
+  (arch.exemples||[]).forEach(function(e){ var s=dv("",`font-size:11px;padding:4px 11px;border-radius:99px;background:var(--bg3);border:1px solid var(--bdr);color:var(--text2)`); tx(s,e); er.appendChild(s) });
+  ec.appendChild(er); sc.appendChild(ec);
+
+  // Conseil
+  var cc=dv("card gold"); cc.appendChild(dv("",`height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)`));
+  var cp=dv("",`padding:14px`); ih(cp,`<div style="font-size:10px;color:var(--gold);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px">Conseil Mirror</div><div style="font-size:13px;color:var(--text);line-height:1.7;font-style:italic">« ${arch.conseil||""} »</div>`); cc.appendChild(cp); sc.appendChild(cc);
+
+  // Grille 6 archétypes
+  var al=dv("",`font-size:10px;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;margin-top:4px;display:flex;justify-content:space-between;align-items:center`);
+  ih(al,`Les 6 archétypes <span style="font-size:9px;color:var(--gold);font-weight:500;letter-spacing:0;text-transform:none">Clique pour explorer →</span>`);
+  sc.appendChild(al);
+  var ag=dv("arch-grid");
+  Object.keys(P.archetypes).forEach(function(n){
+    var a=P.archetypes[n];
+    var m=dv("arch-mini"+(n===nm?" cur":""));
+    ih(m,`<div class="arch-mini-ic" style="color:${a.color}">${a.symbol}</div><div class="arch-mini-nm">${n}</div>`);
+    m.onclick=(function(nn){ return function(){ ST.selArch=nn; rBiblio() } })(n);
+    ag.appendChild(m);
+  });
+  sc.appendChild(ag);
+}
+
+function rBiblioArt(sc){
+  var fr=dv("filter-row");
+  [["all","Tous"],["mine","Pour moi"]].forEach(function(f){
+    var b=bt("fb"+(ST.bfil===f[0]?" active":""),f[1],function(){ ST.bfil=f[0]; rBiblio() }); fr.appendChild(b);
+  });
+  sc.appendChild(fr);
+  var arts=ST.bfil==="mine"?P.articles.filter(function(a){ return a.arch===P.user.archetype||a.arch==="all" }):P.articles;
+  arts.forEach(function(a){
+    var ridx=P.articles.indexOf(a); var tc=tagCol(a.tag);
+    var ac=dv("art-card"); ac.onclick=(function(i){ return function(){ openArticle(i) } })(ridx);
+    var ab=dv("art-body");
+    var am=dv("",`display:flex;gap:6px;align-items:center;margin-bottom:7px;flex-wrap:wrap`);
+    ih(am,`<span class="m-tag" style="background:${tc.b};color:${tc.c}">${a.tag}</span>`);
+    if(a.arch!=="all") ih(am,am.innerHTML+`<span style="font-size:10px;padding:2px 7px;border-radius:99px;background:var(--bg3);color:var(--text3);border:1px solid var(--bdr)">${a.arch}</span>`);
+    ih(am,am.innerHTML+`<span style="font-size:10px;color:var(--text3);margin-left:auto">${a.read}</span>`);
+    var at=dv("art-title"); tx(at,a.title);
+    var ae=dv("art-exc"); tx(ae,a.exc);
+    var adf=dv("",`display:flex;justify-content:space-between;align-items:center;margin-top:7px`);
+    ih(adf,`<span style="font-size:10px;color:var(--text3)">${a.date}</span><span style="font-size:11px;color:var(--gold);font-weight:500">Lire →</span>`);
+    ab.appendChild(am); ab.appendChild(at); ab.appendChild(ae); ab.appendChild(adf); ac.appendChild(ab); sc.appendChild(ac);
+  });
+  var cta=dv("",`padding:14px;background:var(--gold3);border:1px dashed rgba(201,169,110,.2);border-radius:var(--r2);text-align:center;margin-top:4px`);
+  ih(cta,`<div style="font-size:12px;color:var(--text3)">2 articles / semaine · Personnalisés par archétype</div>`);
+  sc.appendChild(cta);
+}
+
+// ══════════════════════════════════════════════════════════
+// PLANS
+// ══════════════════════════════════════════════════════════
+function rPlans(){
+  var sc=cl(qs("tab-plans"));
+  var hh=dv("",`margin-bottom:16px`);
+  ih(hh,`<div style="font-size:17px;font-weight:600;margin-bottom:4px">Nos formules</div><div style="font-size:12px;color:var(--text2);line-height:1.6">Recommandé : <span style="color:var(--ok);font-weight:500">Mirror Essentiel</span> — meilleur rapport qualité/prix.</div>`);
+  sc.appendChild(hh);
+
+  P.plans.forEach(function(p){
+    var pc=dv("plan-card"+(p.pop?" pop":""));
+    pc.onclick=(function(id){ return function(e){ if(e.target.tagName==="BUTTON") return; detPlan(id) } })(p.id);
+    if(p.pop){ var pb4=dv("plan-banner pop"); tx(pb4,"RECOMMANDÉ — MEILLEUR RAPPORT QUALITÉ/PRIX"); pc.appendChild(pb4) }
+    var pb5=dv("plan-body"), pt=dv("plan-top"), pl3=dv("");
+    var pt2=dv("plan-tag"); pt2.style.background=p.tagBg; pt2.style.color=p.tagFg; tx(pt2,p.tag); pl3.appendChild(pt2);
+    var pn=dv("plan-nm"); ih(pn,`<span style="font-size:16px;color:${p.tagFg}">${p.icon}</span> ${p.name}`); pl3.appendChild(pn);
+    var ps=dv("plan-sb"); tx(ps,p.sub); pl3.appendChild(ps);
+    var pr=dv(""); var pp2=dv("plan-pr"); pp2.style.color=p.tagFg; tx(pp2,p.price); pr.appendChild(pp2);
+    var pe=dv("plan-pe"); tx(pe,p.period); pr.appendChild(pe);
+    pt.appendChild(pl3); pt.appendChild(pr); pb5.appendChild(pt);
+    var pd=dv("plan-desc"); tx(pd,p.desc); pb5.appendChild(pd);
+    var ptr=dv("plan-trial"); tx(ptr,"🎁 "+p.trial); pb5.appendChild(ptr);
+    var pfs=dv("plan-feats"+(ST.popen[p.id]?" open":""));
+    p.feats.forEach(function(f){ var fi=dv("plan-feat"); ih(fi,`<span style="color:${p.tagFg};flex-shrink:0">&rarr;</span>${f}`); pfs.appendChild(fi) });
+    pb5.appendChild(pfs);
+    var pbs=dv("plan-btns");
+    var db2=bt("btn-detail",ST.popen[p.id]?"Réduire":"Détail",function(e){ e.stopPropagation(); ST.popen[p.id]=!ST.popen[p.id]; rPlans() });
+    var gb2=bt("btn-go","7j gratuits →",function(e){ e.stopPropagation() }); gb2.style.background=p.tagFg;
+    pbs.appendChild(db2); pbs.appendChild(gb2); pb5.appendChild(pbs);
+    var hint=dv("",`text-align:center;padding:8px 0 4px;font-size:11px;color:var(--text3)`);
+    ih(hint,`<span style="color:var(--gold)">◈</span> Appuie pour voir tous les détails`); pb5.appendChild(hint);
+    pc.appendChild(pb5); sc.appendChild(pc);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// CHAT — COACH IA ILLIMITÉ
+// ══════════════════════════════════════════════════════════
+function rChat(){
+  var msgs=cl(qs("chat-msgs"));
+  var suggs=cl(qs("chat-suggs"));
+  ST.cmsg.forEach(function(m){
+    var r=dv("msg "+m.role);
+    if(m.role==="ai"){ var av=dv("msg-av"); tx(av,P.user.archetype_symbol||"◈"); r.appendChild(av) }
+    var b=dv("msg-bub"); tx(b,m.text); r.appendChild(b); msgs.appendChild(r);
+  });
+  if(ST.clod){
+    var tr=dv("msg ai"); var av2=dv("msg-av"); tx(av2,P.user.archetype_symbol||"◈"); tr.appendChild(av2);
+    var ty=dv("typing"); ty.innerHTML="<span></span><span></span><span></span>"; tr.appendChild(ty); msgs.appendChild(tr);
+  }
+  setTimeout(function(){ msgs.scrollTop=msgs.scrollHeight },50);
+
+  // Suggestions initiales
+  if(ST.cmsg.length<=1&&!ST.clod){
+    var suggestions=["Pourquoi je n'arrive pas à décider ?","Comment activer mon "+P.user.archetype+" ?","Quel est mon plus grand blocage selon toi ?"];
+    suggestions.forEach(function(s){
+      var b=bt("chat-sugg",s,function(){ sendChat(s) }); suggs.appendChild(b);
+    });
+  }
+
+  var sendBtn=qs("chat-send");
+  sendBtn.disabled=ST.clod;
+  sendBtn.onclick=function(){ sendChat(qs("chat-inp").value) };
+  qs("chat-inp").onkeydown=function(e){ if(e.key==="Enter") sendChat(qs("chat-inp").value) };
+}
+
+async function sendChat(text){
+  if(!text||!text.trim()||ST.clod) return;
+  qs("chat-inp").value="";
+  ST.cmsg.push({role:"user",text:text.trim()});
+  ST.clod=true; rChat();
+  try {
+    var hist=ST.cmsg.slice(1).map(function(m){ return{role:m.role==="user"?"user":"assistant",content:m.text} });
+    var sys="Tu es le coach IA de Mirror, specialiste en psychologie de la performance. "+
+      "Tu parles a "+P.user.name+" ("+P.user.archetype+", score "+P.user.score+"/100). "+
+      "Ses blocages: "+(P.blocages||[]).map(function(b){ return b.t }).join(", ")+". "+
+      "Sa situation: "+(OB.ans.situation||"")+". Son objectif: "+(OB.ans.objectif||"")+". "+
+      "Sois direct, percutant, personnalise. Cite ses mots quand c'est pertinent. Max 3 phrases. Francais. Jamais de platitudes generiques.";
+    var res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:300,system:sys,messages:hist})
+    });
+    var data=await res.json();
+    ST.cmsg.push({role:"ai",text:(data.content&&data.content[0]&&data.content[0].text)||"Connexion indisponible."});
+  } catch(e){ ST.cmsg.push({role:"ai",text:"Connexion indisponible. Réessaie dans un instant."}) }
+  ST.clod=false; rChat();
+}
+
+// ══════════════════════════════════════════════════════════
+// PARTAGE
+// ══════════════════════════════════════════════════════════
+function copyScore(){
+  var txt=P.user.archetype_symbol+" "+P.user.archetype+" — Score Mirror "+P.user.score+"/100\nEt toi, tu es qui vraiment ? mirror-three-xi.vercel.app/app";
+  navigator.clipboard&&navigator.clipboard.writeText(txt).then(function(){ alert("Score copié !") });
+}
+function shareX(){
+  var txt=encodeURIComponent("Je viens de découvrir mon archétype psychologique sur Mirror. "+P.user.archetype_symbol+" "+P.user.archetype+" — Score "+P.user.score+"/100. Et toi ? mirror-three-xi.vercel.app/app");
+  window.open("https://twitter.com/intent/tweet?text="+txt,"_blank");
+}
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+startOB();
+</script>
+</body>
+</html>
